@@ -2,6 +2,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useConnections } from 'wagmi'
 import { WalletInfoBar } from './_components/walletInfoBar'
 import { ConversionCard } from './_components/conversionCard'
 import { ConversionResult } from './_components/conversionResult'
@@ -24,6 +25,8 @@ interface ConversionData {
  * - Conversion result displayed below card
  */
 export default function Home() {
+  const connections = useConnections()
+  const isConnected = connections.length > 0
   const [conversionData, setConversionData] = useState<ConversionData>({
     convertedAmount: null,
     currencyMode: 'USD',
@@ -34,7 +37,7 @@ export default function Home() {
   return (
     <main>
       <WalletInfoBar />
-      <section className="pt-24 min-h-screen">
+      <section className={`min-h-screen ${isConnected ? 'pt-24' : 'pt-32 md:pt-24'}`}>
         <section className="container mx-auto px-4 py-8">
           <section className="max-w-4xl mx-auto space-y-8">
             {/* Page header */}

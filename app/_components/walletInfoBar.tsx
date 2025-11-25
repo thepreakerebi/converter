@@ -75,7 +75,13 @@ export function WalletInfoBar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <nav className="container mx-auto px-4 py-3">
-        <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <section
+          className={`flex flex-col gap-3 ${
+            isConnected
+              ? 'sm:flex-row sm:items-center sm:justify-between'
+              : 'items-center justify-center md:flex-row md:items-center md:gap-4'
+          }`}
+        >
           {/* Left side: Wallet status */}
           <section className="flex flex-wrap items-center gap-2 sm:gap-4">
             {isConnected ? (
@@ -127,35 +133,40 @@ export function WalletInfoBar() {
             )}
           </section>
 
-          {/* Right side: Network status */}
-          <section className="flex items-center gap-2">
-            {isConnected && (
-              <>
-                <Badge
-                  variant={isMainnet ? 'default' : 'destructive'}
-                  className="flex items-center gap-1"
-                  aria-label={`Network: ${isMainnet ? 'Ethereum Mainnet' : 'Wrong Network'}`}
-                >
-                  {isMainnet ? (
-                    <>
-                      <CheckCircle2 className="size-3" aria-hidden="true" />
-                      <span>Ethereum Mainnet</span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="size-3" aria-hidden="true" />
-                      <span>Wrong Network</span>
-                    </>
-                  )}
-                </Badge>
-                {chainId && (
-                  <span className="text-xs text-muted-foreground font-mono" aria-label="Chain ID">
-                    Chain ID: {chainId}
-                  </span>
+          {/* Right side: Network status (when connected) or Alert (when not connected) */}
+          {isConnected ? (
+            <section className="flex items-center gap-2">
+              <Badge
+                variant={isMainnet ? 'default' : 'destructive'}
+                className="flex items-center gap-1"
+                aria-label={`Network: ${isMainnet ? 'Ethereum Mainnet' : 'Wrong Network'}`}
+              >
+                {isMainnet ? (
+                  <>
+                    <CheckCircle2 className="size-3" aria-hidden="true" />
+                    <span>Ethereum Mainnet</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="size-3" aria-hidden="true" />
+                    <span>Wrong Network</span>
+                  </>
                 )}
-              </>
-            )}
-          </section>
+              </Badge>
+              {chainId && (
+                <span className="text-xs text-muted-foreground font-mono" aria-label="Chain ID">
+                  Chain ID: {chainId}
+                </span>
+              )}
+            </section>
+          ) : (
+            <Alert className="w-auto max-w-fit">
+              <Wallet className="size-4" aria-hidden="true" />
+              <AlertDescription>
+                Connect your wallet to enable conversion features and view your wBTC balance.
+              </AlertDescription>
+            </Alert>
+          )}
         </section>
 
         {/* Network warning alert */}
@@ -165,16 +176,6 @@ export function WalletInfoBar() {
             <AlertDescription>
               Please switch to Ethereum Mainnet to interact with wBTC. wBTC is only available on
               Ethereum Mainnet (Chain ID: {mainnet.id}).
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Not connected prompt */}
-        {!isConnected && (
-          <Alert className="mt-3">
-            <Wallet className="size-4" aria-hidden="true" />
-            <AlertDescription>
-              Connect your wallet to enable conversion features and view your wBTC balance.
             </AlertDescription>
           </Alert>
         )}
