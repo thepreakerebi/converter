@@ -19,8 +19,9 @@ import { formatUnits } from 'viem'
  */
 export function WalletInfoBar() {
   const connections = useConnections()
-  const isConnected = connections.length > 0
   const account = useAccount()
+  // Use account.isConnected for immediate disconnect updates (more reliable than connections.length)
+  const isConnected = account.isConnected ?? connections.length > 0
   const chainId = useChainId()
   const { disconnect } = useDisconnect()
   const { connect } = useConnect()
