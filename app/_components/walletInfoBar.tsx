@@ -122,10 +122,10 @@ export function WalletInfoBar() {
           <section className="flex flex-wrap items-center gap-2 sm:gap-4">
             {isConnected ? (
               <>
-                <section className="flex items-center gap-2">
+                {/* <section className="flex items-center gap-2">
                   <CheckCircle2 className="size-4 text-green-600 dark:text-green-400" aria-hidden="true" />
                   <span className="text-sm font-medium">Connected</span>
-                </section>
+                </section> */}
                 <Separator orientation="vertical" className="h-4" />
                 <section className="flex items-center gap-2">
                   <Wallet className="size-4 text-muted-foreground" aria-hidden="true" />
