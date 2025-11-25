@@ -156,21 +156,26 @@ export function ConversionCard() {
       ? 'Maximum 2 decimal places'
       : 'Maximum 8 decimal places'
 
+  // Dynamic title and description based on currency mode
+  const cardTitle = `Convert to ${currencyMode === 'USD' ? 'wBTC' : 'USD'}`
+  const cardDescription =
+    currencyMode === 'USD'
+      ? 'Enter USD amount to convert to Wrapped Bitcoin (wBTC) using real-time market prices'
+      : 'Enter wBTC amount to convert to USD using real-time market prices'
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bitcoin className="size-5" aria-hidden="true" />
-          Currency Converter
+          {cardTitle}
         </CardTitle>
-        <CardDescription>
-          Convert between USD and Wrapped Bitcoin (wBTC) using real-time market prices
-        </CardDescription>
+        <CardDescription>{cardDescription}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Input section */}
         <section className="space-y-4">
-          <section className="flex flex-col gap-4 sm:flex-row sm:items-end">
+          <section className="flex flex-row items-start gap-3">
             <section className="flex-1 space-y-2">
               <Label htmlFor="amount-input">
                 Amount ({currencyMode})
@@ -209,14 +214,14 @@ export function ConversionCard() {
               </p>
             </section>
 
-            {/* Toggle button */}
+            {/* Toggle button - aligned with input field */}
             <Button
               type="button"
               variant="outline"
               size="icon"
               onClick={handleToggleCurrency}
               aria-label={`Switch to ${currencyMode === 'USD' ? 'wBTC' : 'USD'} input mode`}
-              className="shrink-0"
+              className="shrink-0 mt-7"
             >
               <ArrowLeftRight className="size-4" aria-hidden="true" />
             </Button>
