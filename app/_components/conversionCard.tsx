@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Spinner } from '@/components/ui/spinner'
-import { AlertCircle, ArrowLeftRight, Bitcoin } from 'lucide-react'
+import { AlertCircle, ArrowLeftRight, Bitcoin, DollarSign } from 'lucide-react'
 import Image from 'next/image'
 import {
   fetchBitcoinPrice,
@@ -192,8 +192,16 @@ export function ConversionCard() {
                   disabled={isInputDisabled}
                   aria-label={`Enter amount in ${currencyMode}`}
                   aria-describedby="decimal-hint"
-                  className={currencyMode === 'WBTC' ? 'pr-12' : ''}
+                  className="pr-12"
                 />
+                {currencyMode === 'USD' && (
+                  <section
+                    className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center size-6 rounded-full bg-muted border"
+                    aria-hidden="true"
+                  >
+                    <DollarSign className="size-4 text-foreground" />
+                  </section>
+                )}
                 {currencyMode === 'WBTC' && (
                   <section
                     className="absolute right-3 top-1/2 -translate-y-1/2"
