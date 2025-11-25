@@ -239,11 +239,26 @@ export function ConversionCard({ onConversionChange }: ConversionCardProps = {})
 
   // Handle currency toggle
   const handleToggleCurrency = () => {
-    setCurrencyMode(currencyMode === 'USD' ? 'WBTC' : 'USD')
-    setInputValue('')
-    setConvertedAmount(null)
+    const newCurrencyMode = currencyMode === 'USD' ? 'WBTC' : 'USD'
+    setCurrencyMode(newCurrencyMode)
+    
+    // If there's input value, keep it and let real-time conversion handle the conversion
+    // Validate input for the new currency mode
+    if (inputValue && inputValue !== '.') {
+      const isValid = newCurrencyMode === 'USD' ? validateUsdInput(inputValue) : validateWbtcInput(inputValue)
+      if (!isValid) {
+        const maxDecimals = newCurrencyMode === 'USD' ? 2 : 8
+        setInputError(
+          `Invalid format for ${newCurrencyMode}. Please enter a number with up to ${maxDecimals} decimal place${maxDecimals > 1 ? 's' : ''}.`
+        )
+      } else {
+        setInputError(null)
+      }
+    } else {
+      setConvertedAmount(null)
+    }
+    // Clear general errors - real-time conversion will handle conversion
     setError(null)
-    setInputError(null)
   }
 
   // Handle clear input
