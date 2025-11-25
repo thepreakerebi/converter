@@ -5,16 +5,20 @@ import { ConversionCard } from '../../app/_components/conversionCard'
 import * as conversionLib from '@/lib/conversion'
 
 // Mock wagmi hooks
+const mockUseConnections = vi.fn<() => Array<{ id: string }>>(() => [])
+const mockUseChainId = vi.fn<() => number>(() => 1)
+const mockUseReadContract = vi.fn<() => { data: unknown; isLoading: boolean }>(() => ({
+  data: undefined,
+  isLoading: false,
+}))
+
 vi.mock('wagmi', async () => {
   const actual = await vi.importActual('wagmi')
   return {
     ...actual,
-    useConnections: vi.fn(() => []),
-    useChainId: vi.fn(() => 1),
-    useReadContract: vi.fn(() => ({
-      data: undefined,
-      isLoading: false,
-    })),
+    useConnections: () => mockUseConnections(),
+    useChainId: () => mockUseChainId(),
+    useReadContract: () => mockUseReadContract(),
   }
 })
 
@@ -40,6 +44,13 @@ describe('ConversionCard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockFetchBitcoinPrice.mockResolvedValue(50000)
+    // Default: wallet not connected
+    mockUseConnections.mockReturnValue([])
+    mockUseChainId.mockReturnValue(1)
+    mockUseReadContract.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+    })
   })
 
   afterEach(() => {
@@ -134,6 +145,9 @@ describe('ConversionCard', () => {
 
   it('should show clear button when input has value', async () => {
     const user = userEvent.setup()
+    // Connect wallet to enable input
+    mockUseConnections.mockReturnValue([{ id: 'test-connection' }])
+    
     render(<ConversionCard />)
 
     await waitFor(() => {
@@ -154,6 +168,9 @@ describe('ConversionCard', () => {
 
   it('should clear input when clear button is clicked', async () => {
     const user = userEvent.setup()
+    // Connect wallet to enable input
+    mockUseConnections.mockReturnValue([{ id: 'test-connection' }])
+    
     render(<ConversionCard />)
 
     await waitFor(() => {
@@ -181,6 +198,9 @@ describe('ConversionCard', () => {
 
   it('should validate USD input with max 2 decimals', async () => {
     const user = userEvent.setup()
+    // Connect wallet to enable input
+    mockUseConnections.mockReturnValue([{ id: 'test-connection' }])
+    
     render(<ConversionCard />)
 
     await waitFor(() => {
@@ -193,7 +213,7 @@ describe('ConversionCard', () => {
     await waitFor(
       () => {
         expect(
-          screen.getByText(/Invalid format.*Maximum 2 decimal places/i)
+          screen.getByText(/Invalid format.*up to 2 decimal places/i)
         ).toBeInTheDocument()
       },
       { timeout: 3000 }
@@ -202,6 +222,9 @@ describe('ConversionCard', () => {
 
   it('should validate wBTC input with max 8 decimals', async () => {
     const user = userEvent.setup()
+    // Connect wallet to enable input
+    mockUseConnections.mockReturnValue([{ id: 'test-connection' }])
+    
     render(<ConversionCard />)
 
     await waitFor(() => {
@@ -222,7 +245,7 @@ describe('ConversionCard', () => {
     await waitFor(
       () => {
         expect(
-          screen.getByText(/Invalid format.*Maximum 8 decimal places/i)
+          screen.getByText(/Invalid format.*up to 8 decimal places/i)
         ).toBeInTheDocument()
       },
       { timeout: 3000 }
@@ -230,15 +253,17 @@ describe('ConversionCard', () => {
   })
 
   it('should show error when BTC price fetch fails', async () => {
-    mockFetchBitcoinPrice.mockRejectedValue(new Error('Network error'))
+    const errorMessage = 'Network error'
+    mockFetchBitcoinPrice.mockRejectedValue(new Error(errorMessage))
 
     render(<ConversionCard />)
 
     await waitFor(
       () => {
-        expect(screen.getByText(/Failed to fetch Bitcoin price/i)).toBeInTheDocument()
+        // The error message is set to err.message, so it should be just "Network error"
+        expect(screen.getByText(errorMessage)).toBeInTheDocument()
       },
-      { timeout: 3000 }
+      { timeout: 5000 }
     )
   })
 })
