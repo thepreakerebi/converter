@@ -46,7 +46,7 @@ export function ConversionCard() {
   const [isLoadingPrice, setIsLoadingPrice] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [inputError, setInputError] = useState<string | null>(null)
-  const [isConverting, setIsConverting] = useState(false)
+  // const [isConverting, setIsConverting] = useState(false) // Not needed with real-time conversion
 
   // Read wBTC contract metadata
   const { data: wbtcSymbol, isLoading: isLoadingSymbol } = useReadContract({
@@ -152,39 +152,39 @@ export function ConversionCard() {
     }
   }
 
-  // Handle conversion
-  const handleConvert = async () => {
-    if (!inputValue || parseInputValue(inputValue) === 0) {
-      setError('Please enter a valid amount')
-      return
-    }
+  // Handle conversion - Commented out: Real-time conversion handles this automatically
+  // const handleConvert = async () => {
+  //   if (!inputValue || parseInputValue(inputValue) === 0) {
+  //     setError('Please enter a valid amount')
+  //     return
+  //   }
 
-    if (!btcPrice) {
-      setError('Bitcoin price not available. Please try again.')
-      return
-    }
+  //   if (!btcPrice) {
+  //     setError('Bitcoin price not available. Please try again.')
+  //     return
+  //   }
 
-    setIsConverting(true)
-    setError(null)
+  //   setIsConverting(true)
+  //   setError(null)
 
-    try {
-      const amount = parseInputValue(inputValue)
+  //   try {
+  //     const amount = parseInputValue(inputValue)
 
-      if (currencyMode === 'USD') {
-        const wbtcAmount = usdToWbtc(amount, btcPrice)
-        setConvertedAmount(wbtcAmount)
-      } else {
-        const usdAmount = wbtcToUsd(amount, btcPrice)
-        setConvertedAmount(usdAmount)
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Conversion failed. Please try again.'
-      )
-    } finally {
-      setIsConverting(false)
-    }
-  }
+  //     if (currencyMode === 'USD') {
+  //       const wbtcAmount = usdToWbtc(amount, btcPrice)
+  //       setConvertedAmount(wbtcAmount)
+  //     } else {
+  //       const usdAmount = wbtcToUsd(amount, btcPrice)
+  //       setConvertedAmount(usdAmount)
+  //     }
+  //   } catch (err) {
+  //     setError(
+  //       err instanceof Error ? err.message : 'Conversion failed. Please try again.'
+  //     )
+  //   } finally {
+  //     setIsConverting(false)
+  //   }
+  // }
 
   // Handle currency toggle
   const handleToggleCurrency = () => {
@@ -248,12 +248,6 @@ export function ConversionCard() {
                   // placeholder={placeholderText}
                   value={inputValue}
                   onChange={(e) => handleInputChange(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !isInputDisabled && inputValue && !isConverting) {
-                      e.preventDefault()
-                      handleConvert()
-                    }
-                  }}
                   disabled={isInputDisabled}
                   aria-label={`Enter amount in ${currencyMode}`}
                   aria-describedby="decimal-hint"
@@ -303,8 +297,8 @@ export function ConversionCard() {
             )}
           </section>
 
-          {/* Convert button */}
-          <Button
+          {/* Convert button - Commented out: Real-time conversion makes button redundant */}
+          {/* <Button
             type="button"
             onClick={handleConvert}
             disabled={isInputDisabled || !inputValue || isConverting}
@@ -319,7 +313,7 @@ export function ConversionCard() {
             ) : (
               `Convert to ${currencyMode === 'USD' ? 'wBTC' : 'USD'}`
             )}
-          </Button>
+          </Button> */}
         </section>
 
         {/* Loading indicator for price */}
