@@ -85,6 +85,35 @@ export function ConversionCard() {
     loadPrice()
   }, [])
 
+  // Real-time conversion as user types
+  useEffect(() => {
+    // Only convert if we have valid input, BTC price, and no input errors
+    if (!inputValue || inputValue === '.' || inputError || !btcPrice) {
+      setConvertedAmount(null)
+      return
+    }
+
+    const amount = parseInputValue(inputValue)
+    if (amount === 0) {
+      setConvertedAmount(null)
+      return
+    }
+
+    try {
+      if (currencyMode === 'USD') {
+        const wbtcAmount = usdToWbtc(amount, btcPrice)
+        setConvertedAmount(wbtcAmount)
+      } else {
+        const usdAmount = wbtcToUsd(amount, btcPrice)
+        setConvertedAmount(usdAmount)
+      }
+      setError(null)
+    } catch {
+      // Silently handle conversion errors for real-time updates
+      setConvertedAmount(null)
+    }
+  }, [inputValue, btcPrice, currencyMode, inputError])
+
   // Handle input change with validation
   const handleInputChange = (value: string) => {
     // Check if value contains invalid characters (non-numeric, non-decimal)
@@ -204,7 +233,7 @@ export function ConversionCard() {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Input section */}
-        <section className="space-y-4">
+        <section className="space-y-5">
           <section className="space-y-2">
             <Label htmlFor="amount-input" className="flex flex-col items-start gap-2">
               Amount ({currencyMode})
