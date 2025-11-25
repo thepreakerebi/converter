@@ -11,9 +11,9 @@ import { ConversionCard } from './_components/conversionCard'
  */
 export default function Home() {
   return (
-    <>
+    <main>
       <WalletInfoBar />
-      <main className="pt-24 min-h-screen">
+      <section className="pt-24 min-h-screen">
         <section className="container mx-auto px-4 py-8">
           <section className="max-w-4xl mx-auto space-y-8">
             {/* Page header */}
@@ -30,7 +30,7 @@ export default function Home() {
             </section>
           </section>
         </section>
-      </main>
-    </>
+      </section>
+    </main>
   )
 }
