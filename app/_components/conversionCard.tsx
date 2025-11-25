@@ -17,7 +17,6 @@ import {
   usdToWbtc,
   wbtcToUsd,
   formatUsd,
-  formatWbtc,
   validateUsdInput,
   validateWbtcInput,
   parseInputValue,
@@ -29,11 +28,20 @@ const WBTC_ICON_URL =
 
 type CurrencyMode = 'USD' | 'WBTC'
 
+interface ConversionCardProps {
+  onConversionChange?: (data: {
+    convertedAmount: number | null
+    currencyMode: CurrencyMode
+    inputValue: string
+    error: string | null
+  }) => void
+}
+
 /**
  * ConversionCard Component
  * Main conversion interface for USD <-> wBTC conversion
  */
-export function ConversionCard() {
+export function ConversionCard({ onConversionChange }: ConversionCardProps = {}) {
   const connections = useConnections()
   const isConnected = connections.length > 0
   const chainId = useChainId()
@@ -94,29 +102,68 @@ export function ConversionCard() {
     // Only convert if we have valid input, BTC price, and no input errors
     if (!inputValue || inputValue === '.' || inputError || !btcPrice) {
       setConvertedAmount(null)
+      // Notify parent of conversion state change
+      onConversionChange?.({
+        convertedAmount: null,
+        currencyMode,
+        inputValue,
+        error: null,
+      })
       return
     }
 
     const amount = parseInputValue(inputValue)
     if (amount === 0) {
       setConvertedAmount(null)
+      onConversionChange?.({
+        convertedAmount: null,
+        currencyMode,
+        inputValue,
+        error: null,
+      })
       return
     }
 
     try {
+      let result: number | null = null
       if (currencyMode === 'USD') {
         const wbtcAmount = usdToWbtc(amount, btcPrice)
         setConvertedAmount(wbtcAmount)
+        result = wbtcAmount
       } else {
         const usdAmount = wbtcToUsd(amount, btcPrice)
         setConvertedAmount(usdAmount)
+        result = usdAmount
       }
       setError(null)
+      // Notify parent of conversion result
+      onConversionChange?.({
+        convertedAmount: result,
+        currencyMode,
+        inputValue,
+        error: null,
+      })
     } catch {
       // Silently handle conversion errors for real-time updates
       setConvertedAmount(null)
+      onConversionChange?.({
+        convertedAmount: null,
+        currencyMode,
+        inputValue,
+        error: null,
+      })
     }
-  }, [inputValue, btcPrice, currencyMode, inputError])
+  }, [inputValue, btcPrice, currencyMode, inputError, onConversionChange])
+
+  // Notify parent when error changes
+  useEffect(() => {
+    onConversionChange?.({
+      convertedAmount,
+      currencyMode,
+      inputValue,
+      error,
+    })
+  }, [error, convertedAmount, currencyMode, inputValue, onConversionChange])
 
   // Handle input change with validation
   const handleInputChange = (value: string) => {
@@ -337,25 +384,6 @@ export function ConversionCard() {
           </section>
         )}
 
-        {/* Conversion result */}
-        {convertedAmount !== null && !error && (
-          <section className="rounded-lg border-2 border-amber-200/50 bg-linear-to-br from-amber-50 via-orange-50/30 to-yellow-50/50 dark:from-amber-950/20 dark:via-orange-950/10 dark:to-yellow-950/20 dark:border-amber-800/30 p-4 shadow-sm">
-            <h3 className="text-sm font-medium mb-2 text-amber-900 dark:text-amber-100">
-              Conversion Result
-            </h3>
-            <p className="text-2xl font-bold text-amber-950 dark:text-amber-50">
-              {currencyMode === 'USD'
-                ? formatWbtc(convertedAmount)
-                : formatUsd(convertedAmount)}
-            </p>
-            <p className="text-sm text-amber-800/70 dark:text-amber-200/70 mt-1">
-              Equivalent to{' '}
-              {currencyMode === 'USD'
-                ? formatUsd(parseInputValue(inputValue))
-                : formatWbtc(parseInputValue(inputValue))}
-            </p>
-          </section>
-        )}
 
         {/* Error messages */}
         {error && (

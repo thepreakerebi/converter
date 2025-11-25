@@ -1,6 +1,19 @@
 
+'use client'
+
+import { useState } from 'react'
 import { WalletInfoBar } from './_components/walletInfoBar'
 import { ConversionCard } from './_components/conversionCard'
+import { ConversionResult } from './_components/conversionResult'
+
+type CurrencyMode = 'USD' | 'WBTC'
+
+interface ConversionData {
+  convertedAmount: number | null
+  currencyMode: CurrencyMode
+  inputValue: string
+  error: string | null
+}
 
 /**
  * Home Page
@@ -8,8 +21,16 @@ import { ConversionCard } from './_components/conversionCard'
  * Features:
  * - Fixed header with wallet/network info
  * - Conversion card with real-time price data
+ * - Conversion result displayed below card
  */
 export default function Home() {
+  const [conversionData, setConversionData] = useState<ConversionData>({
+    convertedAmount: null,
+    currencyMode: 'USD',
+    inputValue: '',
+    error: null,
+  })
+
   return (
     <main>
       <WalletInfoBar />
@@ -26,8 +47,16 @@ export default function Home() {
 
             {/* Conversion card */}
             <section aria-label="Currency conversion interface">
-              <ConversionCard />
+              <ConversionCard onConversionChange={setConversionData} />
             </section>
+
+            {/* Conversion result */}
+            <ConversionResult
+              convertedAmount={conversionData.convertedAmount}
+              currencyMode={conversionData.currencyMode}
+              inputValue={conversionData.inputValue}
+              error={conversionData.error}
+            />
           </section>
         </section>
       </section>
