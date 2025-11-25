@@ -2,8 +2,6 @@
 
 A modern, responsive single-page React application built with Next.js and TypeScript for converting between USD and Wrapped Bitcoin (wBTC) tokens on Ethereum Mainnet. The application demonstrates strong React/TypeScript fundamentals, asynchronous operations, error handling, and foundational Web3 concepts.
 
-**Repository**: [https://github.com/thepreakerebi/converter.git](https://github.com/thepreakerebi/converter.git)
-
 ## Features
 
 - **Real-time Currency Conversion**: Convert between USD and wBTC using live Bitcoin prices from CoinGecko API
@@ -261,6 +259,42 @@ converter/
 - **wagmi v3**: React hooks for Ethereum
 - **viem**: TypeScript Ethereum library
 - **@wagmi/connectors**: Wallet connectors (MetaMask, WalletConnect, Injected)
+
+**Why wagmi + viem instead of ethers.js or web3.js?**
+
+I chose **wagmi** and **viem** over alternatives like **ethers.js** or **web3.js** for several key reasons:
+
+1. **Modern TypeScript-First Design**: 
+   - **viem** is built from the ground up with TypeScript, providing superior type safety and developer experience
+   - **ethers.js** and **web3.js** were originally JavaScript libraries with TypeScript added later, leading to less comprehensive type coverage
+
+2. **React-Optimized Architecture**:
+   - **wagmi** provides React hooks that integrate seamlessly with React's component lifecycle and state management
+   - Built-in support for React Query, automatic cache management, and optimistic updates
+   - **ethers.js** and **web3.js** require manual state management and don't have native React integration
+
+3. **Better Performance**:
+   - **viem** uses modern ESM and tree-shaking, resulting in smaller bundle sizes
+   - More efficient RPC calls and built-in request batching
+   - **ethers.js** can be heavier and less optimized for modern bundlers
+
+4. **Superior Developer Experience**:
+   - **wagmi** handles wallet connection state, network switching, and account management automatically
+   - Built-in SSR support with Next.js App Router
+   - Simplified API with fewer boilerplate code requirements
+   - **ethers.js** requires more manual setup and configuration
+
+5. **Active Development & Future-Proof**:
+   - **wagmi** and **viem** are actively maintained with regular updates and modern best practices
+   - Better alignment with the latest Ethereum standards and EIPs
+   - Strong community support and comprehensive documentation
+
+6. **Next.js Integration**:
+   - Native support for Next.js App Router and Server Components
+   - Built-in cookie-based storage for SSR hydration
+   - Seamless integration with React Query for data fetching
+
+While **ethers.js** and **web3.js** are mature and widely used, **wagmi + viem** provide a more modern, type-safe, and React-friendly approach that aligns better with current best practices and Next.js development patterns.
 
 ### UI & Styling
 - **Tailwind CSS 4**: Utility-first CSS framework
