@@ -431,14 +431,12 @@ export function ConversionCard({ onConversionChange }: ConversionCardProps = {})
 
         {/* Wallet/Network warnings */}
         {!isConnected && (
-          <section className="flex justify-center">
-            <Alert className="w-auto max-w-fit">
-              <AlertCircle className="size-4" aria-hidden="true" />
-              <AlertDescription>
-                Please connect your wallet to enable conversion features.
-              </AlertDescription>
-            </Alert>
-          </section>
+          <Alert>
+            <AlertCircle className="size-4" aria-hidden="true" />
+            <AlertDescription>
+              Please connect your wallet to enable conversion features.
+            </AlertDescription>
+          </Alert>
         )}
 
         {isWrongNetwork && (
