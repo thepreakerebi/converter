@@ -274,8 +274,9 @@ export function ConversionCard({ onConversionChange }: ConversionCardProps = {})
     setInputError(null)
   }
 
-  // Check if input is disabled
-  const isInputDisabled = !isConnected || !isMainnet || isLoadingPrice
+  // Check if input is disabled - only disable when loading price
+  // Conversion works without wallet connection (wallet only needed for optional on-chain features)
+  const isInputDisabled = isLoadingPrice
 
   // Get placeholder text
   // const placeholderText =
@@ -445,12 +446,12 @@ export function ConversionCard({ onConversionChange }: ConversionCardProps = {})
           </Alert>
         )}
 
-        {/* Wallet/Network warnings */}
+        {/* Wallet connection info - optional for enhanced features */}
         {!isConnected && (
           <Alert>
             <AlertCircle className="size-4" aria-hidden="true" />
             <AlertDescription>
-              Please connect your wallet to enable conversion features.
+              Connect your wallet to view on-chain wBTC contract details and your wBTC balance.
             </AlertDescription>
           </Alert>
         )}

@@ -163,7 +163,7 @@ export function WalletInfoBar() {
             <Alert className="w-auto max-w-fit">
               <Wallet className="size-4" aria-hidden="true" />
               <AlertDescription>
-                Connect your wallet to enable conversion features and view your wBTC balance.
+                Connect your wallet to view on-chain wBTC contract details and your wBTC balance.
               </AlertDescription>
             </Alert>
           )}
