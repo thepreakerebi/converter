@@ -272,14 +272,16 @@ export function ConversionCard() {
 
         {/* Conversion result */}
         {convertedAmount !== null && !error && (
-          <section className="rounded-lg border bg-muted/50 p-4">
-            <h3 className="text-sm font-medium mb-2">Conversion Result</h3>
-            <p className="text-2xl font-bold">
+          <section className="rounded-lg border-2 border-amber-200/50 bg-gradient-to-br from-amber-50 via-orange-50/30 to-yellow-50/50 dark:from-amber-950/20 dark:via-orange-950/10 dark:to-yellow-950/20 dark:border-amber-800/30 p-4 shadow-sm">
+            <h3 className="text-sm font-medium mb-2 text-amber-900 dark:text-amber-100">
+              Conversion Result
+            </h3>
+            <p className="text-2xl font-bold text-amber-950 dark:text-amber-50">
               {currencyMode === 'USD'
                 ? formatWbtc(convertedAmount)
                 : formatUsd(convertedAmount)}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-amber-800/70 dark:text-amber-200/70 mt-1">
               Equivalent to{' '}
               {currencyMode === 'USD'
                 ? formatUsd(parseInputValue(inputValue))
