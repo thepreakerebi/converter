@@ -1,7 +1,6 @@
 
 import { WalletInfoBar } from './_components/walletInfoBar'
 import { ConversionCard } from './_components/conversionCard'
-import { Footer } from './_components/footer'
 
 /**
  * Home Page
@@ -9,14 +8,13 @@ import { Footer } from './_components/footer'
  * Features:
  * - Fixed header with wallet/network info
  * - Conversion card with real-time price data
- * - Footer with instructions and resources
  */
 export default function Home() {
   return (
     <>
       <WalletInfoBar />
-      <main className="pt-24 min-h-screen flex flex-col">
-        <section className="container mx-auto px-4 py-8 flex-1">
+      <main className="pt-24 min-h-screen">
+        <section className="container mx-auto px-4 py-8">
           <section className="max-w-4xl mx-auto space-y-8">
             {/* Page header */}
             <header className="text-center space-y-2">
@@ -32,9 +30,6 @@ export default function Home() {
             </section>
           </section>
         </section>
-
-        {/* Footer */}
-        <Footer />
       </main>
     </>
   )
