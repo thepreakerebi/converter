@@ -45,6 +45,7 @@ export function ConversionCard() {
   const [btcPrice, setBtcPrice] = useState<number | null>(null)
   const [isLoadingPrice, setIsLoadingPrice] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [inputError, setInputError] = useState<string | null>(null)
   const [isConverting, setIsConverting] = useState(false)
 
   // Read wBTC contract metadata
@@ -86,6 +87,9 @@ export function ConversionCard() {
 
   // Handle input change with validation
   const handleInputChange = (value: string) => {
+    // Check if value contains invalid characters (non-numeric, non-decimal)
+    const hasInvalidChars = /[^\d.]/.test(value)
+    
     // Remove any non-numeric characters except decimal point
     const cleaned = value.replace(/[^\d.]/g, '')
 
@@ -93,9 +97,29 @@ export function ConversionCard() {
     const isValid =
       currencyMode === 'USD' ? validateUsdInput(cleaned) : validateWbtcInput(cleaned)
 
-    if (isValid) {
+    // Show error if invalid characters were entered
+    if (hasInvalidChars) {
+      const maxDecimals = currencyMode === 'USD' ? 2 : 8
+      setInputError(
+        `Only numbers and decimal point allowed. Maximum ${maxDecimals} decimal place${maxDecimals > 1 ? 's' : ''}.`
+      )
+      // Still update the input with cleaned value
       setInputValue(cleaned)
       setError(null)
+    } else if (isValid) {
+      setInputValue(cleaned)
+      setInputError(null)
+      setError(null)
+    } else if (cleaned !== '' && cleaned !== '.') {
+      // Show error for invalid decimal format
+      const maxDecimals = currencyMode === 'USD' ? 2 : 8
+      setInputError(
+        `Invalid format. Please enter a number with up to ${maxDecimals} decimal place${maxDecimals > 1 ? 's' : ''}.`
+      )
+      setInputValue(cleaned)
+    } else {
+      setInputValue(cleaned)
+      setInputError(null)
     }
   }
 
@@ -139,6 +163,7 @@ export function ConversionCard() {
     setInputValue('')
     setConvertedAmount(null)
     setError(null)
+    setInputError(null)
   }
 
   // Check if input is disabled
@@ -167,7 +192,12 @@ export function ConversionCard() {
     <Card className="w-full max-w-2xl mx-auto border-none shadow-none bg-zinc-50">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Bitcoin className="size-5" aria-hidden="true" />
+          {currencyMode === 'USD' ? (
+            <Bitcoin className="size-5" aria-hidden="true" />
+          ) : (
+            <DollarSign className="size-5" aria-hidden="true" />
+
+          )}
           {cardTitle}
         </CardTitle>
         <CardDescription>{cardDescription}</CardDescription>
@@ -235,9 +265,13 @@ export function ConversionCard() {
                 <ArrowLeftRight className="size-4" aria-hidden="true" />
               </Button>
             </section>
-            {/* <p id="decimal-hint" className="text-xs text-muted-foreground">
-              {decimalHint}
-            </p> */}
+            {/* Input validation error */}
+            {inputError && (
+              <Alert variant="destructive" className="mt-2">
+                <AlertCircle className="size-4" aria-hidden="true" />
+                <AlertDescription>{inputError}</AlertDescription>
+              </Alert>
+            )}
           </section>
 
           {/* Convert button */}
