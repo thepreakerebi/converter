@@ -239,7 +239,7 @@ export function ConversionCard() {
             type="button"
             onClick={handleConvert}
             disabled={isInputDisabled || !inputValue || isConverting}
-            className="w-full"
+            className="w-full h-12 rounded-full"
             aria-label="Convert currency"
           >
             {isConverting ? (
