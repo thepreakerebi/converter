@@ -39,7 +39,7 @@ export function WalletInfoBar() {
   })
 
   // Read decimals for formatting
-  const { data: decimals } = useReadContract({
+  const { data: decimals, isLoading: isLoadingDecimals } = useReadContract({
     ...wbtcContractConfig,
     functionName: WBTC_FUNCTIONS.decimals,
     query: {
@@ -47,11 +47,14 @@ export function WalletInfoBar() {
     },
   })
 
-  // Format balance
+  // Format balance - handle loading and zero balance cases
   const wbtcBalance =
-    wbtcBalanceRaw && decimals
+    wbtcBalanceRaw !== undefined && decimals !== undefined
       ? formatWbtc(Number(formatUnits(wbtcBalanceRaw, decimals)))
       : null
+  
+  // Check if we're still loading balance or decimals
+  const isLoadingBalanceData = isLoadingBalance || isLoadingDecimals
 
   // Format address for display
   const formatAddress = (addr: string | undefined) => {
@@ -97,13 +100,17 @@ export function WalletInfoBar() {
                     {formatAddress(address)}
                   </span>
                 </section>
-                {isMainnet && wbtcBalance !== null && (
+                {isMainnet && (
                   <>
                     <Separator orientation="vertical" className="h-4" />
                     <section className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">Balance:</span>
                       <span className="text-sm font-medium" aria-label="wBTC balance">
-                        {isLoadingBalance ? '...' : wbtcBalance}
+                        {isLoadingBalanceData
+                          ? '...'
+                          : wbtcBalance !== null
+                            ? wbtcBalance
+                            : '0 wBTC'}
                       </span>
                     </section>
                   </>
