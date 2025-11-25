@@ -431,7 +431,7 @@ export function ConversionCard({ onConversionChange }: ConversionCardProps = {})
         {btcPrice && !isLoadingPrice && (
           <section className="text-left">
             <p className="text-sm text-muted-foreground">
-              1 wBTC = <span className="font-medium">{formatUsd(btcPrice)}</span>
+              1 wBTC ≈ <span className="font-medium">{formatUsd(btcPrice)}</span>
             </p>
           </section>
         )}
