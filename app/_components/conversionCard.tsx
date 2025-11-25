@@ -37,7 +37,11 @@ export function ConversionCard() {
   const connections = useConnections()
   const isConnected = connections.length > 0
   const chainId = useChainId()
+  // Check if chain is Ethereum Mainnet
+  // If chainId is undefined, it might be a non-EVM chain (like Solana) that wagmi doesn't support
   const isMainnet = chainId === mainnet.id
+  // Show error if connected but not on mainnet, or if chainId is undefined (non-EVM chain)
+  const isWrongNetwork = isConnected && (!isMainnet || chainId === undefined)
 
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('USD')
   const [inputValue, setInputValue] = useState('')
@@ -218,7 +222,7 @@ export function ConversionCard() {
       : 'Enter wBTC amount to convert to USD using real-time market prices'
 
   return (
-    <Card className="w-full max-w-2xl mx-auto border-none shadow-none bg-zinc-50">
+    <Card className="w-full max-w-xl mx-auto border-none shadow-none bg-zinc-50">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {currencyMode === 'USD' ? (
@@ -251,7 +255,7 @@ export function ConversionCard() {
                   disabled={isInputDisabled}
                   aria-label={`Enter amount in ${currencyMode}`}
                   aria-describedby="decimal-hint"
-                  className="pr-12"
+                  className="pr-12 bg-white"
                 />
                 {currencyMode === 'USD' && (
                   <section
@@ -371,11 +375,13 @@ export function ConversionCard() {
           </Alert>
         )}
 
-        {isConnected && !isMainnet && (
+        {isWrongNetwork && (
           <Alert variant="destructive">
             <AlertCircle className="size-4" aria-hidden="true" />
             <AlertDescription>
-              Please switch to Ethereum Mainnet to interact with wBTC.
+              {chainId === undefined
+                ? 'Unsupported network detected. Please switch to Ethereum Mainnet to interact with wBTC.'
+                : 'Please switch to Ethereum Mainnet to interact with wBTC.'}
             </AlertDescription>
           </Alert>
         )}

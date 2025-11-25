@@ -24,7 +24,7 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="font-sans antialiased" suppressHydrationWarning>
         <Providers initialState={initialState}>
-          {children}
+        {children}
         </Providers>
       </body>
     </html>
