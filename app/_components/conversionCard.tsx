@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Spinner } from '@/components/ui/spinner'
-import { AlertCircle, ArrowLeftRight, Bitcoin, DollarSign } from 'lucide-react'
+import { AlertCircle, ArrowLeftRight, Bitcoin, DollarSign, X } from 'lucide-react'
 import Image from 'next/image'
 import {
   fetchBitcoinPrice,
@@ -246,6 +246,14 @@ export function ConversionCard({ onConversionChange }: ConversionCardProps = {})
     setInputError(null)
   }
 
+  // Handle clear input
+  const handleClearInput = () => {
+    setInputValue('')
+    setConvertedAmount(null)
+    setError(null)
+    setInputError(null)
+  }
+
   // Check if input is disabled
   const isInputDisabled = !isConnected || !isMainnet || isLoadingPrice
 
@@ -304,6 +312,19 @@ export function ConversionCard({ onConversionChange }: ConversionCardProps = {})
                   aria-describedby="decimal-hint"
                   className="pr-12 bg-white"
                 />
+                {/* Clear button - shows when there's input value */}
+                {inputValue && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearInput}
+                    aria-label="Clear input"
+                    className="absolute right-10 top-1/2 -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted"
+                  >
+                    <X className="size-3.5" aria-hidden="true" />
+                  </Button>
+                )}
                 {currencyMode === 'USD' && (
                   <section
                     className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center size-6 rounded-full bg-muted border"
