@@ -145,10 +145,10 @@ export function ConversionCard() {
   const isInputDisabled = !isConnected || !isMainnet || isLoadingPrice
 
   // Get placeholder text
-  const placeholderText =
-    currencyMode === 'USD'
-      ? 'Enter amount in USD (max 2 decimals)'
-      : 'Enter amount in wBTC (max 8 decimals)'
+  // const placeholderText =
+  //   currencyMode === 'USD'
+  //     ? 'Enter amount in USD (max 2 decimals)'
+  //     : 'Enter amount in wBTC (max 8 decimals)'
 
   // Get decimal hint
   const decimalHint =
@@ -176,9 +176,9 @@ export function ConversionCard() {
         {/* Input section */}
         <section className="space-y-4">
           <section className="space-y-2">
-            <Label htmlFor="amount-input">
+            <Label htmlFor="amount-input" className="flex flex-col items-start gap-2">
               Amount ({currencyMode})
-              <span className="ml-2 text-xs text-muted-foreground">({decimalHint})</span>
+              <span className="text-xs text-muted-foreground">({decimalHint})</span>
             </Label>
             <section className="flex flex-row items-center gap-3">
               <section className="relative flex-1">
@@ -186,7 +186,7 @@ export function ConversionCard() {
                   id="amount-input"
                   type="text"
                   inputMode="decimal"
-                  placeholder={placeholderText}
+                  // placeholder={placeholderText}
                   value={inputValue}
                   onChange={(e) => handleInputChange(e.target.value)}
                   onKeyDown={(e) => {
@@ -235,9 +235,9 @@ export function ConversionCard() {
                 <ArrowLeftRight className="size-4" aria-hidden="true" />
               </Button>
             </section>
-            <p id="decimal-hint" className="text-xs text-muted-foreground">
+            {/* <p id="decimal-hint" className="text-xs text-muted-foreground">
               {decimalHint}
-            </p>
+            </p> */}
           </section>
 
           {/* Convert button */}
