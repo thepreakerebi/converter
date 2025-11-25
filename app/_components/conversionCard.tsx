@@ -11,6 +11,11 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Spinner } from '@/components/ui/spinner'
 import { AlertCircle, ArrowLeftRight, Bitcoin, DollarSign, X } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import Image from 'next/image'
 import {
   fetchBitcoinPrice,
@@ -365,15 +370,26 @@ export function ConversionCard({ onConversionChange }: ConversionCardProps = {})
               </section>
 
               {/* Toggle button - same height as input */}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleToggleCurrency}
-                aria-label={`Switch to ${currencyMode === 'USD' ? 'wBTC' : 'USD'} input mode`}
-                className="shrink-0 h-9 w-9 p-0"
-              >
-                <ArrowLeftRight className="size-4" aria-hidden="true" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleToggleCurrency}
+                    aria-label={`Switch to ${currencyMode === 'USD' ? 'wBTC' : 'USD'} input mode`}
+                    className="shrink-0 h-9 w-9 p-0"
+                  >
+                    <ArrowLeftRight className="size-4" aria-hidden="true" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {currencyMode === 'USD'
+                      ? 'Switch to wBTC input mode to convert to USD'
+                      : 'Switch to USD input mode to convert to wBTC'}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
             </section>
             {/* Input validation error */}
             {inputError && (
