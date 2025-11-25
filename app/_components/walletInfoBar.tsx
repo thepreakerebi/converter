@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, startTransition } from 'react'
-import { useChainId, useDisconnect, useConnect, useAccount } from 'wagmi'
+import { useConnections, useChainId, useDisconnect, useConnect, useAccount } from 'wagmi'
 import { useReadContract } from 'wagmi'
 import { mainnet } from 'wagmi/chains'
 import { Button } from '@/components/ui/button'
@@ -19,32 +18,9 @@ import { formatUnits } from 'viem'
  * Fixed header displaying wallet connection status, network info, and wBTC balance
  */
 export function WalletInfoBar() {
-  const [isDisconnecting, setIsDisconnecting] = useState(false)
-  const prevConnectedRef = useRef<boolean>(false)
+  const connections = useConnections()
+  const isConnected = connections.length > 0
   const account = useAccount()
-  // Use account.isConnected as primary source of truth for connection state
-  const isConnected = account.isConnected
-  
-  // Reset disconnecting state when transitioning from disconnected to connected
-  // This handles reconnect scenarios (including auto-reconnect)
-  // Note: This setState in effect is necessary to sync local UI state with wagmi's external state
-  // The linter warning can be ignored as this is a valid synchronization use case
-  useEffect(() => {
-    const wasConnected = prevConnectedRef.current
-    const isNowConnected = account.isConnected
-    prevConnectedRef.current = isNowConnected
-    
-    // If we transitioned from disconnected to connected, reset disconnecting state
-    if (!wasConnected && isNowConnected) {
-      startTransition(() => {
-        setIsDisconnecting(false)
-      })
-    }
-  }, [account.isConnected]) // Only track account.isConnected to avoid cascading renders
-  
-  // Reset disconnecting state if account is disconnected (derived state)
-  // This ensures state stays in sync: if connected, we're not disconnecting
-  const effectiveIsDisconnecting = isDisconnecting && account.isConnected
   const chainId = useChainId()
   const { disconnect } = useDisconnect()
   const { connect } = useConnect()
@@ -87,8 +63,6 @@ export function WalletInfoBar() {
   }
 
   const handleConnect = () => {
-    // Reset disconnecting state when connecting
-    setIsDisconnecting(false)
     // Try MetaMask first, fallback to injected connector
     try {
       connect({ connector: metaMask() })
@@ -97,14 +71,7 @@ export function WalletInfoBar() {
     }
   }
 
-  const handleDisconnect = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    
-    // Prevent multiple clicks during disconnect
-    if (effectiveIsDisconnecting || !account.isConnected) return
-    
-    setIsDisconnecting(true)
+  const handleDisconnect = () => {
     disconnect()
   }
 
@@ -152,10 +119,9 @@ export function WalletInfoBar() {
                   variant="outline"
                   size="sm"
                   onClick={handleDisconnect}
-                  disabled={effectiveIsDisconnecting || !account.isConnected}
                   aria-label="Disconnect wallet"
                 >
-                  {effectiveIsDisconnecting ? 'Disconnecting...' : 'Disconnect'}
+                  Disconnect
                 </Button>
               </>
             ) : (
