@@ -377,7 +377,7 @@ export function ConversionCard({ onConversionChange }: ConversionCardProps = {})
 
         {/* Price display */}
         {btcPrice && !isLoadingPrice && (
-          <section className="text-center">
+          <section className="text-left">
             <p className="text-sm text-muted-foreground">
               Current BTC Price: <span className="font-medium">{formatUsd(btcPrice)}</span>
             </p>
@@ -415,24 +415,43 @@ export function ConversionCard({ onConversionChange }: ConversionCardProps = {})
         )}
 
         {/* Contract metadata display */}
-        {isConnected && isMainnet && (wbtcSymbol || wbtcDecimals) && (
+        {isConnected && isMainnet && (
           <section className="text-xs text-muted-foreground space-y-1">
-            <p>
-              Token Symbol:{' '}
-              {isLoadingSymbol ? (
-                <Spinner className="inline size-3" aria-hidden="true" />
-              ) : (
-                <span className="font-mono font-medium">{wbtcSymbol || 'N/A'}</span>
-              )}
-            </p>
-            <p>
-              Decimals:{' '}
-              {isLoadingDecimals ? (
-                <Spinner className="inline size-3" aria-hidden="true" />
-              ) : (
-                <span className="font-mono font-medium">{wbtcDecimals?.toString() || 'N/A'}</span>
-              )}
-            </p>
+            {currencyMode === 'USD' ? (
+              // Show wBTC contract info when converting TO wBTC
+              <>
+                {(wbtcSymbol || wbtcDecimals) && (
+                  <>
+                    <p>
+                      Token Symbol:{' '}
+                      {isLoadingSymbol ? (
+                        <Spinner className="inline size-3" aria-hidden="true" />
+                      ) : (
+                        <span className="font-mono font-medium">{wbtcSymbol || 'N/A'}</span>
+                      )}
+                    </p>
+                    <p>
+                      Decimals:{' '}
+                      {isLoadingDecimals ? (
+                        <Spinner className="inline size-3" aria-hidden="true" />
+                      ) : (
+                        <span className="font-mono font-medium">{wbtcDecimals?.toString() || 'N/A'}</span>
+                      )}
+                    </p>
+                  </>
+                )}
+              </>
+            ) : (
+              // Show USD info when converting TO USD
+              <>
+                <p>
+                  Currency: <span className="font-mono font-medium">USD</span>
+                </p>
+                <p>
+                  Decimals: <span className="font-mono font-medium">2</span>
+                </p>
+              </>
+            )}
           </section>
         )}
       </CardContent>
