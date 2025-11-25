@@ -164,7 +164,7 @@ export function ConversionCard() {
       : 'Enter wBTC amount to convert to USD using real-time market prices'
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-2xl mx-auto border-none shadow-none bg-zinc-50">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bitcoin className="size-5" aria-hidden="true" />
@@ -175,13 +175,13 @@ export function ConversionCard() {
       <CardContent className="space-y-6">
         {/* Input section */}
         <section className="space-y-4">
-          <section className="flex flex-row items-start gap-3">
-            <section className="flex-1 space-y-2">
-              <Label htmlFor="amount-input">
-                Amount ({currencyMode})
-                <span className="ml-2 text-xs text-muted-foreground">({decimalHint})</span>
-              </Label>
-              <section className="relative">
+          <section className="space-y-2">
+            <Label htmlFor="amount-input">
+              Amount ({currencyMode})
+              <span className="ml-2 text-xs text-muted-foreground">({decimalHint})</span>
+            </Label>
+            <section className="flex flex-row items-center gap-3">
+              <section className="relative flex-1">
                 <Input
                   id="amount-input"
                   type="text"
@@ -209,22 +209,21 @@ export function ConversionCard() {
                   </section>
                 )}
               </section>
-              <p id="decimal-hint" className="text-xs text-muted-foreground">
-                {decimalHint}
-              </p>
-            </section>
 
-            {/* Toggle button - aligned with input field */}
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={handleToggleCurrency}
-              aria-label={`Switch to ${currencyMode === 'USD' ? 'wBTC' : 'USD'} input mode`}
-              className="shrink-0 mt-7"
-            >
-              <ArrowLeftRight className="size-4" aria-hidden="true" />
-            </Button>
+              {/* Toggle button - same height as input */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleToggleCurrency}
+                aria-label={`Switch to ${currencyMode === 'USD' ? 'wBTC' : 'USD'} input mode`}
+                className="shrink-0 h-9 w-9 p-0"
+              >
+                <ArrowLeftRight className="size-4" aria-hidden="true" />
+              </Button>
+            </section>
+            <p id="decimal-hint" className="text-xs text-muted-foreground">
+              {decimalHint}
+            </p>
           </section>
 
           {/* Convert button */}
