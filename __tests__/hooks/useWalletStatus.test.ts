@@ -23,6 +23,10 @@ const mockAccount = vi.fn<() => { isConnected: boolean; address?: string }>(() =
   isConnected: false,
   address: undefined,
 }))
+const mockSwitchChain = vi.fn()
+const mockIsPending = vi.fn(() => false)
+const mockError = vi.fn(() => null)
+const mockReset = vi.fn()
 
 vi.mock('wagmi', async () => {
   const actual = await vi.importActual('wagmi')
@@ -31,6 +35,12 @@ vi.mock('wagmi', async () => {
     useConnections: () => mockConnections(),
     useChainId: () => mockChainId(),
     useAccount: () => mockAccount(),
+    useSwitchChain: () => ({
+      switchChain: mockSwitchChain,
+      isPending: mockIsPending(),
+      error: mockError(),
+      reset: mockReset,
+    }),
   }
 })
 
@@ -42,6 +52,11 @@ describe('useWalletStatus', () => {
     vi.clearAllMocks()
     // Reset localStorage
     localStorage.clear()
+    // Reset switch chain mocks
+    mockSwitchChain.mockReset()
+    mockIsPending.mockReturnValue(false)
+    mockError.mockReturnValue(null)
+    mockReset.mockReset()
   })
 
   it('should return disconnected state when not connected', () => {

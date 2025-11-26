@@ -103,7 +103,7 @@ export function ChainStatusBadge() {
             <Alert variant="destructive" className="mt-2">
               <AlertCircle className="size-4" aria-hidden="true" />
               <AlertDescription className="text-xs">
-                Unable to switch network automatically. Please switch to Ethereum Mainnet or Sepolia in your wallet.
+                {switchError.message || 'Unable to switch network automatically. Please switch to Ethereum Mainnet or Sepolia in your wallet.'}
               </AlertDescription>
             </Alert>
           )}
