@@ -219,15 +219,16 @@ describe('WalletInfoBar', () => {
     })
   })
 
-  it('should call connect when Connect Wallet button is clicked', async () => {
-    const user = userEvent.setup()
-    render(<WalletInfoBar />)
-
-    const connectButton = screen.getByText(/Connect Wallet/i)
-    await user.click(connectButton)
-
-    expect(mockUseConnect).toHaveBeenCalled()
-  })
+  // Connect Wallet button test commented out - button removed, ConnectorSelector handles connection
+  // it('should call connect when Connect Wallet button is clicked', async () => {
+  //   const user = userEvent.setup()
+  //   render(<WalletInfoBar />)
+  //
+  //   const connectButton = screen.getByText(/Connect Wallet/i)
+  //   await user.click(connectButton)
+  //
+  //   expect(mockUseConnect).toHaveBeenCalled()
+  // })
 
   it('should call disconnect when Disconnect button is clicked', async () => {
     const user = userEvent.setup()

@@ -3,7 +3,7 @@
 import { useConnect } from 'wagmi'
 import { metaMask, walletConnect, injected } from '@wagmi/connectors'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
+// import { Label } from '@/components/ui/label' // Commented out - label removed for cleaner UI
 import { useWalletStatus } from '@/hooks/useWalletStatus'
 import { useMemo } from 'react'
 import { loadConnectorPreference } from '@/lib/storage'
@@ -68,9 +68,10 @@ export function ConnectorSelector() {
 
   return (
     <section className="flex flex-col gap-2">
-      <Label htmlFor="connector-select" className="text-sm font-medium">
+      {/* Label commented out - placeholder text is sufficient */}
+      {/* <Label htmlFor="connector-select" className="text-sm font-medium">
         Wallet Connector
-      </Label>
+      </Label> */}
       <Select
         value={currentConnectorId || undefined}
         onValueChange={handleConnectorChange}
@@ -81,7 +82,7 @@ export function ConnectorSelector() {
           aria-label="Select wallet connector"
           className="w-full sm:w-[200px]"
         >
-          <SelectValue placeholder="Select connector">{currentConnectorName}</SelectValue>
+          <SelectValue placeholder="Connect Wallet">{currentConnectorName}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {connectors.map((conn) => (

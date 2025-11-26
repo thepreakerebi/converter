@@ -1,12 +1,12 @@
 'use client'
 
-import { useDisconnect, useConnect, useAccount } from 'wagmi'
+import { useDisconnect, useAccount } from 'wagmi'
 import { useReadContract } from 'wagmi'
 import { mainnet } from 'wagmi/chains'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/button' // Still needed for Disconnect button
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
-import { metaMask, injected } from '@wagmi/connectors'
+// import { metaMask, injected } from '@wagmi/connectors' // Commented out - ConnectorSelector handles connection
 import { AlertCircle, Wallet, XCircle } from 'lucide-react'
 import { wbtcContractConfig, WBTC_FUNCTIONS } from '@/lib/wbtc-contract'
 import { formatWbtc } from '@/lib/conversion'
@@ -24,7 +24,7 @@ export function WalletInfoBar() {
   const { isConnected, chainId, isSupportedChain } = useWalletStatus()
   const account = useAccount()
   const { disconnect } = useDisconnect()
-  const { connect } = useConnect()
+  // const { connect } = useConnect() // Commented out - ConnectorSelector handles connection
 
   const isMainnet = chainId === mainnet.id
   const address = account.address
@@ -63,14 +63,15 @@ export function WalletInfoBar() {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`
   }
 
-  const handleConnect = () => {
-    // Try MetaMask first, fallback to injected connector
-    try {
-      connect({ connector: metaMask() })
-    } catch {
-      connect({ connector: injected() })
-    }
-  }
+  // handleConnect commented out - ConnectorSelector handles connection now
+  // const handleConnect = () => {
+  //   // Try MetaMask first, fallback to injected connector
+  //   try {
+  //     connect({ connector: metaMask() })
+  //   } catch {
+  //     connect({ connector: injected() })
+  //   }
+  // }
 
   const handleDisconnect = () => {
     disconnect()
@@ -127,16 +128,17 @@ export function WalletInfoBar() {
               </>
             ) : (
               <section className="flex items-center gap-2">
-                <XCircle className="size-4 text-muted-foreground" aria-hidden="true" />
-                <span className="text-sm text-muted-foreground">Not connected</span>
-                <Button
+                {/* <XCircle className="size-4 text-muted-foreground" aria-hidden="true" />
+                <span className="text-sm text-muted-foreground">Not connected</span> */}
+                {/* Connect Wallet button commented out - ConnectorSelector handles connection */}
+                {/* <Button
                   variant="default"
                   size="sm"
                   onClick={handleConnect}
                   aria-label="Connect wallet"
                 >
                   Connect Wallet
-                </Button>
+                </Button> */}
               </section>
             )}
           </section>
