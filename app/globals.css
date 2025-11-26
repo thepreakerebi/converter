@@ -120,3 +120,29 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Ensure WalletConnect modals appear above all other content */
+/* WalletConnect v2 uses w3m- prefix, older versions use wcm- */
+@layer utilities {
+  /* WalletConnect modal overlay and content - v2 */
+  w3m-modal,
+  w3m-modal-overlay,
+  [data-wcm-overlay],
+  [data-wcm-container],
+  .w3m-modal,
+  .w3m-overlay {
+    z-index: 9999 !important;
+  }
+  
+  /* WalletConnect backdrop - v2 */
+  [data-wcm-backdrop],
+  .w3m-backdrop {
+    z-index: 9998 !important;
+  }
+  
+  /* WalletConnect root container */
+  #w3m-modal,
+  #wcm-modal {
+    z-index: 9999 !important;
+  }
+}
