@@ -79,38 +79,83 @@ export function useWalletStatus(): UseWalletStatusReturn {
     ethereum?: EthereumProvider
   }
 
-  // Helper function to verify MetaMask's actual chainId
-  // Uses eth_chainId RPC method to verify the switch actually happened
+  // Helper function to verify MetaMask's network switch using chainChanged event
+  // This is the reliable way to detect when MetaMask actually switches networks
+  // Reference: https://docs.metamask.io/wallet/how-to/manage-networks/detect-network/
   const verifyChainSwitch = useCallback(async (
     ethereum: EthereumProvider,
     targetChainId: number,
     chainName: string
   ): Promise<boolean> => {
-    try {
-      // Wait a bit for MetaMask to process the switch
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      
-      // Check MetaMask's actual chainId
-      const currentChainIdHex = (await ethereum.request({
-        method: 'eth_chainId',
-      })) as string
-      
-      const currentChainId = parseInt(currentChainIdHex, 16)
+    return new Promise((resolve) => {
       const targetChainIdHex = `0x${targetChainId.toString(16)}`
-      
-      if (currentChainId === targetChainId) {
-        console.log(`Verified: MetaMask is now on ${chainName} (chainId: ${targetChainIdHex})`)
-        return true
-      } else {
-        console.warn(
-          `Chain switch verification failed: MetaMask reports chainId ${currentChainIdHex} (${currentChainId}), expected ${targetChainIdHex} (${targetChainId})`
-        )
-        return false
+      let timeoutId: NodeJS.Timeout | null = null
+      let eventHandler: ((chainId: string) => void) | null = null
+      let resolved = false
+
+      // Set up timeout (10 seconds) - if event doesn't fire, switch didn't happen
+      timeoutId = setTimeout(() => {
+        if (!resolved) {
+          resolved = true
+          console.warn(
+            `Chain switch verification timeout: chainChanged event did not fire within 10 seconds. MetaMask may not have switched to ${chainName}.`
+          )
+          if (eventHandler && ethereum.removeListener) {
+            ethereum.removeListener('chainChanged', eventHandler)
+          }
+          resolve(false)
+        }
+      }, 10000)
+
+      // Set up chainChanged event listener
+      // This event ONLY fires when MetaMask actually switches networks
+      eventHandler = (newChainId: string) => {
+        if (resolved) return
+        
+        // Remove leading zeros and compare (normalize hex strings)
+        const normalizedNewChainId = newChainId.toLowerCase().replace(/^0x0+/, '0x') || '0x0'
+        const normalizedTargetChainId = targetChainIdHex.toLowerCase().replace(/^0x0+/, '0x') || '0x0'
+        
+        // Also check numeric comparison for safety
+        const newChainIdNum = parseInt(newChainId, 16)
+        const targetChainIdNum = targetChainId
+        
+        if (normalizedNewChainId === normalizedTargetChainId || newChainIdNum === targetChainIdNum) {
+          resolved = true
+          if (timeoutId) clearTimeout(timeoutId)
+          if (ethereum.removeListener && eventHandler) {
+            ethereum.removeListener('chainChanged', eventHandler)
+          }
+          console.log(`Verified: MetaMask switched to ${chainName} (chainId: ${normalizedTargetChainId})`)
+          resolve(true)
+        } else {
+          // Event fired but with wrong chainId - user switched to different network
+          console.warn(
+            `ChainChanged event fired but with unexpected chainId: ${normalizedNewChainId} (${newChainIdNum}), expected ${normalizedTargetChainId} (${targetChainIdNum})`
+          )
+          // Don't resolve yet - wait for timeout or correct chainId
+        }
       }
-    } catch (error) {
-      console.error('Error verifying chain switch:', error)
-      return false
-    }
+
+      // Register the event listener
+      if (ethereum.on) {
+        ethereum.on('chainChanged', eventHandler)
+      } else {
+        // Fallback: if on() is not available, resolve false after timeout
+        console.warn('ethereum.on not available, cannot listen for chainChanged events')
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          timeoutId = setTimeout(() => {
+            if (!resolved) {
+              resolved = true
+              resolve(false)
+            }
+          }, 1000) // Shorter timeout for fallback
+        } else {
+          resolve(false)
+        }
+      }
+    })
   }, [])
 
   // Change network to a supported chain (Ethereum Mainnet first, then Sepolia)
@@ -149,8 +194,8 @@ export function useWalletStatus(): UseWalletStatusReturn {
             setSwitchAttempted(false)
             return
           } else {
-            // Switch request succeeded but MetaMask didn't actually switch
-            throw new Error('Network switch request succeeded but MetaMask did not switch networks. Please switch manually in MetaMask.')
+            // Switch request succeeded but chainChanged event didn't fire - MetaMask didn't actually switch
+            throw new Error('Network switch request was sent, but MetaMask did not switch networks. Please switch to Ethereum Mainnet or Sepolia manually in your MetaMask wallet.')
           }
         } catch (mainnetError: unknown) {
           // Check if error is user rejection (code 4001)
@@ -184,8 +229,8 @@ export function useWalletStatus(): UseWalletStatusReturn {
               setSwitchAttempted(false)
               return
             } else {
-              // Switch request succeeded but MetaMask didn't actually switch
-              throw new Error('Network switch request succeeded but MetaMask did not switch networks. Please switch manually in MetaMask.')
+              // Switch request succeeded but chainChanged event didn't fire - MetaMask didn't actually switch
+              throw new Error('Network switch request was sent, but MetaMask did not switch networks. Please switch to Ethereum Mainnet or Sepolia manually in your MetaMask wallet.')
             }
           } catch (sepoliaError: unknown) {
             const isSepoliaRejection =
