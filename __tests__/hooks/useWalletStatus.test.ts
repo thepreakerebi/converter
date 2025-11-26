@@ -23,10 +23,7 @@ const mockAccount = vi.fn<() => { isConnected: boolean; address?: string }>(() =
   isConnected: false,
   address: undefined,
 }))
-const mockSwitchChain = vi.fn()
-const mockIsPending = vi.fn(() => false)
-const mockError = vi.fn(() => null)
-const mockReset = vi.fn()
+const mockDisconnect = vi.fn()
 
 vi.mock('wagmi', async () => {
   const actual = await vi.importActual('wagmi')
@@ -35,12 +32,7 @@ vi.mock('wagmi', async () => {
     useConnections: () => mockConnections(),
     useChainId: () => mockChainId(),
     useAccount: () => mockAccount(),
-    useSwitchChain: () => ({
-      switchChain: mockSwitchChain,
-      isPending: mockIsPending(),
-      error: mockError(),
-      reset: mockReset,
-    }),
+    useDisconnect: () => ({ disconnect: mockDisconnect }),
   }
 })
 
@@ -52,11 +44,6 @@ describe('useWalletStatus', () => {
     vi.clearAllMocks()
     // Reset localStorage
     localStorage.clear()
-    // Reset switch chain mocks
-    mockSwitchChain.mockReset()
-    mockIsPending.mockReturnValue(false)
-    mockError.mockReturnValue(null)
-    mockReset.mockReset()
   })
 
   it('should return disconnected state when not connected', () => {
@@ -174,13 +161,31 @@ describe('useWalletStatus', () => {
     expect(result.current.chainId).toBeUndefined()
   })
 
-  it('should provide changeNetwork function', () => {
+  it('should provide retryDetection function that disconnects when connected', () => {
+    mockConnections.mockReturnValue([{ connector: { id: 'test' } as Connector }])
+    mockAccount.mockReturnValue({ isConnected: true, address: '0x123' })
+    
     const { result } = renderHook(() => useWalletStatus())
 
-    expect(typeof result.current.changeNetwork).toBe('function')
-    expect(typeof result.current.isSwitchingChain).toBe('boolean')
-    expect(result.current.switchError).toBeNull()
-    expect(typeof result.current.switchAttempted).toBe('boolean')
+    expect(typeof result.current.retryDetection).toBe('function')
+
+    // Call retryDetection - should disconnect if connected
+    result.current.retryDetection()
+    
+    // Verify disconnect was called when connected
+    expect(mockDisconnect).toHaveBeenCalled()
+  })
+
+  it('should not call disconnect when retryDetection is called but not connected', () => {
+    mockConnections.mockReturnValue([])
+    mockAccount.mockReturnValue({ isConnected: false, address: undefined })
+    
+    const { result } = renderHook(() => useWalletStatus())
+
+    result.current.retryDetection()
+    
+    // Disconnect should not be called when not connected
+    expect(mockDisconnect).not.toHaveBeenCalled()
   })
 
   it('should provide selectConnector function', async () => {

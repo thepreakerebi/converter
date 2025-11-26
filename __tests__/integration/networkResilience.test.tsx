@@ -136,7 +136,7 @@ describe('Network Resilience Integration', () => {
     expect(screen.getByText(mainnet.name)).toBeInTheDocument()
   })
 
-  it('should display unsupported network badge and change network button for Polygon', () => {
+  it('should display unsupported network badge and retry button for Polygon', () => {
     const mockConnector = {
       id: 'io.metamask',
       name: 'MetaMask',
@@ -153,7 +153,7 @@ describe('Network Resilience Integration', () => {
     expect(badges.length).toBeGreaterThan(0)
     // Check that it shows network name format: "Unsupported Network: Polygon"
     expect(screen.getByText(/unsupported network: polygon/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/switch to ethereum mainnet/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/retry network detection/i)).toBeInTheDocument()
   })
 
   it('should display unsupported network badge for Arbitrum', () => {
@@ -169,7 +169,7 @@ describe('Network Resilience Integration', () => {
     render(<WalletInfoBar />)
 
     expect(screen.getByText(/unsupported network: arbitrum one/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/switch to ethereum mainnet/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/retry network detection/i)).toBeInTheDocument()
   })
 
   it('should display unsupported network badge for Optimism', () => {
@@ -185,7 +185,7 @@ describe('Network Resilience Integration', () => {
     render(<WalletInfoBar />)
 
     expect(screen.getByText(/unsupported network: op mainnet/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/switch to ethereum mainnet/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/retry network detection/i)).toBeInTheDocument()
   })
 
   it('should display unsupported network badge for Base', () => {
@@ -201,7 +201,7 @@ describe('Network Resilience Integration', () => {
     render(<WalletInfoBar />)
 
     expect(screen.getByText(/unsupported network: base/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/switch to ethereum mainnet/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/retry network detection/i)).toBeInTheDocument()
   })
 
   it('should display unsupported network badge for BSC', () => {
@@ -217,7 +217,7 @@ describe('Network Resilience Integration', () => {
     render(<WalletInfoBar />)
 
     expect(screen.getByText(/unsupported network: bnb smart chain/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/switch to ethereum mainnet/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/retry network detection/i)).toBeInTheDocument()
   })
 
   it('should display connector selector when not connected', () => {
@@ -262,7 +262,7 @@ describe('Network Resilience Integration', () => {
     expect(screen.getByText(sepolia.name)).toBeInTheDocument()
   })
 
-  it('should show change network button for unsupported chains', () => {
+  it('should show retry button for unsupported chains', () => {
     const mockConnector = {
       id: 'io.metamask',
       name: 'MetaMask',
@@ -274,9 +274,9 @@ describe('Network Resilience Integration', () => {
 
     render(<WalletInfoBar />)
 
-    const changeNetworkButton = screen.getByLabelText(/switch to ethereum mainnet/i)
-    expect(changeNetworkButton).toBeInTheDocument()
-    expect(changeNetworkButton).toHaveTextContent(/change network/i)
+    const retryButton = screen.getByLabelText(/retry network detection/i)
+    expect(retryButton).toBeInTheDocument()
+    expect(retryButton).toHaveTextContent(/retry detection/i)
   })
 })
 
