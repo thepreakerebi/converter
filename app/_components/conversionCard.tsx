@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useConnections, useChainId } from 'wagmi'
 import { mainnet } from 'wagmi/chains'
 import { useReadContract } from 'wagmi'
@@ -40,13 +40,16 @@ interface ConversionCardProps {
     inputValue: string
     error: string | null
   }) => void
+  onInputFocus?: (inputElement: HTMLInputElement | null, cardContentElement: HTMLDivElement | null) => void
 }
 
 /**
  * ConversionCard Component
  * Main conversion interface for USD <-> wBTC conversion
  */
-export function ConversionCard({ onConversionChange }: ConversionCardProps = {}) {
+export function ConversionCard({ onConversionChange, onInputFocus }: ConversionCardProps = {}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const cardContentRef = useRef<HTMLDivElement>(null)
   const connections = useConnections()
   const isConnected = connections.length > 0
   const chainId = useChainId()
@@ -311,7 +314,7 @@ export function ConversionCard({ onConversionChange }: ConversionCardProps = {})
         </CardTitle>
         <CardDescription>{cardDescription}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent ref={cardContentRef} className="space-y-6">
         {/* Input section */}
         <section className="space-y-5">
           <section className="space-y-2">
@@ -322,16 +325,18 @@ export function ConversionCard({ onConversionChange }: ConversionCardProps = {})
             <section className="flex flex-row items-center gap-3">
               <section className="relative flex-1">
                 <Input
+                  ref={inputRef}
                   id="amount-input"
                   type="text"
                   inputMode="decimal"
                   // placeholder={placeholderText}
                   value={inputValue}
                   onChange={(e) => handleInputChange(e.target.value)}
+                  onFocus={() => onInputFocus?.(inputRef.current, cardContentRef.current)}
                   disabled={isInputDisabled}
                   aria-label={`Enter amount in ${currencyMode}`}
                   aria-describedby="decimal-hint"
-                  className="pr-12 bg-white"
+                  className="h-12 md:h-9 pr-12 bg-white"
                 />
                 {/* Clear button - shows when there's input value */}
                 {inputValue && (
@@ -378,7 +383,7 @@ export function ConversionCard({ onConversionChange }: ConversionCardProps = {})
                     variant="outline"
                     onClick={handleToggleCurrency}
                     aria-label={`Switch to ${currencyMode === 'USD' ? 'wBTC' : 'USD'} input mode`}
-                    className="shrink-0 h-9 w-9 p-0"
+                    className="shrink-0 h-12 w-12 md:h-9 md:w-9 p-0"
                   >
                     <ArrowLeftRight className="size-4" aria-hidden="true" />
                   </Button>

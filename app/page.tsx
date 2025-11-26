@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useConnections } from 'wagmi'
 import { WalletInfoBar } from './_components/walletInfoBar'
 import { ConversionCard } from './_components/conversionCard'
@@ -33,6 +33,36 @@ export default function Home() {
     inputValue: '',
     error: null,
   })
+  const conversionResultRef = useRef<HTMLElement>(null)
+  const conversionSectionRef = useRef<HTMLElement>(null)
+
+  // Scroll to position input field optimally on small screens when focused
+  const handleInputFocus = useCallback((inputElement: HTMLInputElement | null, cardContentElement: HTMLDivElement | null) => {
+    // Only scroll on small screens (sm and below, which is < 640px)
+    if (window.innerWidth < 640 && inputElement && cardContentElement) {
+      // Small delay to ensure layout is stable and conversion result can render
+      setTimeout(() => {
+        const cardContentRect = cardContentElement.getBoundingClientRect()
+        const currentScrollY = window.scrollY
+        const fixedHeaderHeight = isConnected ? 112 : 128 // Approximate fixed header height (pt-28 = 112px, pt-32 = 128px)
+        
+        // Calculate optimal scroll position: position CardContent start just below fixed header
+        // This will hide the page header, card title, and card description above
+        const cardContentTop = cardContentRect.top + currentScrollY
+        const targetScrollY = cardContentTop - fixedHeaderHeight - 8 // 8px padding for breathing room
+        
+        // Only scroll if CardContent is not already in optimal position
+        const currentCardContentTop = cardContentRect.top
+        const optimalTop = fixedHeaderHeight + 8
+        if (Math.abs(currentCardContentTop - optimalTop) > 20) {
+          window.scrollTo({
+            top: targetScrollY,
+            behavior: 'smooth',
+          })
+        }
+      }, 150)
+    }
+  }, [isConnected])
 
   return (
     <main>
@@ -49,17 +79,18 @@ export default function Home() {
             </header>
 
             {/* Conversion card */}
-            <section aria-label="Currency conversion interface">
-              <ConversionCard onConversionChange={setConversionData} />
+            <section className="space-y-4" aria-label="Currency conversion interface" ref={conversionSectionRef}>
+              <ConversionCard onConversionChange={setConversionData} onInputFocus={handleInputFocus} />
+              
+              {/* Conversion result */}
+              <ConversionResult
+                ref={conversionResultRef}
+                convertedAmount={conversionData.convertedAmount}
+                currencyMode={conversionData.currencyMode}
+                inputValue={conversionData.inputValue}
+                error={conversionData.error}
+              />
             </section>
-
-            {/* Conversion result */}
-            <ConversionResult
-              convertedAmount={conversionData.convertedAmount}
-              currencyMode={conversionData.currencyMode}
-              inputValue={conversionData.inputValue}
-              error={conversionData.error}
-            />
           </section>
         </section>
       </section>
