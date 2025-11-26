@@ -159,14 +159,13 @@ describe('useWalletStatus', () => {
     expect(result.current.chainId).toBeUndefined()
   })
 
-  it('should provide retryDetection function', () => {
+  it('should provide changeNetwork function', () => {
     const { result } = renderHook(() => useWalletStatus())
 
-    expect(typeof result.current.retryDetection).toBe('function')
-
-    // Verify function can be called without errors
-    // Note: window.location.reload cannot be easily mocked in jsdom
-    expect(() => result.current.retryDetection()).not.toThrow()
+    expect(typeof result.current.changeNetwork).toBe('function')
+    expect(typeof result.current.isSwitchingChain).toBe('boolean')
+    expect(result.current.switchError).toBeNull()
+    expect(typeof result.current.switchAttempted).toBe('boolean')
   })
 
   it('should provide selectConnector function', async () => {

@@ -1,8 +1,11 @@
 import { useConnections, useChainId, useAccount } from 'wagmi'
-import { useEffect, useCallback, useMemo } from 'react'
+import { useEffect, useCallback, useMemo, useState } from 'react'
 import type { Connector } from 'wagmi'
 import type { Chain } from 'viem/chains'
+import { switchChain } from '@wagmi/core'
+import { wagmiConfig } from '@/lib/wagmi.config'
 import { supportedChains } from '@/lib/wagmi.config'
+import { mainnet, sepolia } from 'wagmi/chains'
 import {
   saveConnectorPreference,
   loadConnectorPreference,
@@ -20,7 +23,10 @@ export interface UseWalletStatusReturn {
   isSupportedChain: boolean
   supportedChains: readonly Chain[]
   currentChain: Chain | null
-  retryDetection: () => void
+  changeNetwork: () => Promise<void>
+  isSwitchingChain: boolean
+  switchError: Error | null
+  switchAttempted: boolean
   selectConnector: (connectorId: string) => void
 }
 
@@ -56,15 +62,52 @@ export function useWalletStatus(): UseWalletStatusReturn {
     return supportedChains.find((chain) => chain.id === chainId) ?? null
   }, [chainId])
 
-  // Retry chain detection by reloading the page
-  // This helps when chain detection fails or is delayed
-  const retryDetection = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      // Force a re-render by updating localStorage timestamp
-      // This will trigger wagmi to re-check the chain
-      window.location.reload()
+  const [isSwitchingChain, setIsSwitchingChain] = useState(false)
+  const [switchError, setSwitchError] = useState<Error | null>(null)
+  const [switchAttempted, setSwitchAttempted] = useState(false)
+
+  // Change network to a supported chain (Ethereum Mainnet first, then Sepolia)
+  // Uses wagmi's switchChain action for proper chain switching
+  // Reference: https://wagmi.sh/core/api/actions/switchChain
+  const changeNetwork = useCallback(async () => {
+    if (!isConnected || isSupportedChain) return
+
+    setSwitchAttempted(true)
+    setIsSwitchingChain(true)
+    setSwitchError(null)
+    
+    try {
+      // Try Ethereum Mainnet first (most common)
+      try {
+        await switchChain(wagmiConfig, { chainId: mainnet.id })
+        setIsSwitchingChain(false)
+        setSwitchError(null)
+        // Reset switchAttempted after successful switch
+        // Small delay to allow chainId to update via wagmi
+        setTimeout(() => setSwitchAttempted(false), 100)
+      } catch (mainnetError: unknown) {
+        // If Mainnet switch fails, try Sepolia as fallback
+        try {
+          await switchChain(wagmiConfig, { chainId: sepolia.id })
+          setIsSwitchingChain(false)
+          setSwitchError(null)
+          // Reset switchAttempted after successful switch
+          setTimeout(() => setSwitchAttempted(false), 100)
+        } catch (sepoliaError: unknown) {
+          // Both failed - set error state
+          setIsSwitchingChain(false)
+          const error = mainnetError instanceof Error ? mainnetError : new Error(String(mainnetError))
+          setSwitchError(error)
+          console.error('Failed to switch to supported network:', { mainnetError, sepoliaError })
+        }
+      }
+    } catch (error) {
+      setIsSwitchingChain(false)
+      const err = error instanceof Error ? error : new Error(String(error))
+      setSwitchError(err)
+      console.error('Network switch error:', error)
     }
-  }, [])
+  }, [isConnected, isSupportedChain])
 
   // Select connector by ID
   // Note: This doesn't actually switch connectors, but saves preference
@@ -111,7 +154,10 @@ export function useWalletStatus(): UseWalletStatusReturn {
     isSupportedChain,
     supportedChains,
     currentChain,
-    retryDetection,
+    changeNetwork,
+    isSwitchingChain,
+    switchError,
+    switchAttempted,
     selectConnector,
   }
 }

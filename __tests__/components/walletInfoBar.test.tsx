@@ -119,7 +119,10 @@ describe('WalletInfoBar', () => {
       isSupportedChain: false,
       supportedChains: [mainnet, sepolia],
       currentChain: null,
-      retryDetection: vi.fn(),
+      changeNetwork: vi.fn(),
+      isSwitchingChain: false,
+      switchError: null,
+      switchAttempted: false,
       selectConnector: vi.fn(),
     })
   })
@@ -156,7 +159,10 @@ describe('WalletInfoBar', () => {
       isSupportedChain: true,
       supportedChains: [mainnet, sepolia],
       currentChain: mainnet,
-      retryDetection: vi.fn(),
+      changeNetwork: vi.fn(),
+      isSwitchingChain: false,
+      switchError: null,
+      switchAttempted: false,
       selectConnector: vi.fn(),
     })
     mockUseAccount.mockReturnValue({
@@ -182,7 +188,10 @@ describe('WalletInfoBar', () => {
       isSupportedChain: true,
       supportedChains: [mainnet, sepolia],
       currentChain: mainnet,
-      retryDetection: vi.fn(),
+      changeNetwork: vi.fn(),
+      isSwitchingChain: false,
+      switchError: null,
+      switchAttempted: false,
       selectConnector: vi.fn(),
     })
     mockUseAccount.mockReturnValue({
@@ -208,7 +217,10 @@ describe('WalletInfoBar', () => {
       isSupportedChain: false,
       supportedChains: [mainnet, sepolia],
       currentChain: null,
-      retryDetection: vi.fn(),
+      changeNetwork: vi.fn(),
+      isSwitchingChain: false,
+      switchError: null,
+      switchAttempted: false,
       selectConnector: vi.fn(),
     })
     mockUseAccount.mockReturnValue({
@@ -237,7 +249,10 @@ describe('WalletInfoBar', () => {
       isSupportedChain: true,
       supportedChains: [mainnet, sepolia],
       currentChain: mainnet,
-      retryDetection: vi.fn(),
+      changeNetwork: vi.fn(),
+      isSwitchingChain: false,
+      switchError: null,
+      switchAttempted: false,
       selectConnector: vi.fn(),
     })
     mockUseAccount.mockReturnValue({
@@ -294,7 +309,10 @@ describe('WalletInfoBar', () => {
       isSupportedChain: true,
       supportedChains: [mainnet, sepolia],
       currentChain: mainnet,
-      retryDetection: vi.fn(),
+      changeNetwork: vi.fn(),
+      isSwitchingChain: false,
+      switchError: null,
+      switchAttempted: false,
       selectConnector: vi.fn(),
     })
     mockUseAccount.mockReturnValue({
