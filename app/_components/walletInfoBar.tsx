@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button' // Still needed for Disconnect b
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 // import { metaMask, injected } from '@wagmi/connectors' // Commented out - ConnectorSelector handles connection
-import { AlertCircle, Wallet, XCircle } from 'lucide-react'
+import { AlertCircle, Wallet } from 'lucide-react'
+// import { XCircle } from 'lucide-react' // Commented out - not used after removing "Not connected" text
 import { wbtcContractConfig, WBTC_FUNCTIONS } from '@/lib/wbtc-contract'
 import { formatWbtc } from '@/lib/conversion'
 import { formatUnits } from 'viem'
@@ -78,7 +79,7 @@ export function WalletInfoBar() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+    <header className="fixed top-0 left-0 right-0 z-40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <nav className="container mx-auto px-4 py-3">
         <section
           className={`flex flex-col gap-3 ${

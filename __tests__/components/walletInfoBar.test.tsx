@@ -77,14 +77,17 @@ describe('WalletInfoBar', () => {
 
   it('should render wallet info bar', () => {
     render(<WalletInfoBar />)
-    expect(screen.getByText(/Not connected/i)).toBeInTheDocument()
+    // "Not connected" text removed - ConnectorSelector is the primary UI
+    expect(screen.getByLabelText(/Select wallet connector/i)).toBeInTheDocument()
   })
 
   it('should show not connected state', () => {
     render(<WalletInfoBar />)
 
-    expect(screen.getByText(/Not connected/i)).toBeInTheDocument()
-    expect(screen.getByText(/Connect Wallet/i)).toBeInTheDocument()
+    // "Not connected" text removed - ConnectorSelector shows "Connect Wallet" placeholder
+    expect(screen.getByLabelText(/Select wallet connector/i)).toBeInTheDocument()
+    // SelectValue shows placeholder text, check for connector selector presence
+    expect(screen.getByRole('combobox')).toBeInTheDocument()
     expect(
       screen.getByText(/Connect your wallet to view on-chain/i)
     ).toBeInTheDocument()

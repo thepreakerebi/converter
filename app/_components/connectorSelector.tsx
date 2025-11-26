@@ -5,22 +5,20 @@ import { metaMask, walletConnect, injected } from '@wagmi/connectors'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 // import { Label } from '@/components/ui/label' // Commented out - label removed for cleaner UI
 import { useWalletStatus } from '@/hooks/useWalletStatus'
-import { useMemo } from 'react'
-import { loadConnectorPreference } from '@/lib/storage'
+import { useMemo, useState, useEffect } from 'react'
 
 /**
  * ConnectorSelector Component
- * Dropdown selector for choosing wallet connector (MetaMask or WalletConnect)
- * Displays current connector status and persists selection
+ * Action trigger dropdown for choosing wallet connector (MetaMask or WalletConnect)
+ * Always shows "Connect Wallet" placeholder - does not display selected value
+ * Clicking an option triggers connection but does not set a selected state
+ * Resets to placeholder if connection is cancelled or fails
+ * Saved preference is handled by selectConnector() for future use, not for display
  */
 export function ConnectorSelector() {
   const { connector, isConnected, selectConnector } = useWalletStatus()
-  const { connect } = useConnect()
-
-  // Get current connector ID or saved preference
-  const currentConnectorId = useMemo(() => {
-    return connector?.id ?? loadConnectorPreference() ?? ''
-  }, [connector])
+  const { connect, error: connectError, reset: resetConnect } = useConnect()
+  const [selectKey, setSelectKey] = useState(0) // Key to force Select reset
 
   // Available connectors with their factory functions
   const connectors = useMemo(() => {
@@ -46,25 +44,57 @@ export function ConnectorSelector() {
     return connectorList
   }, [])
 
+  // Reset Select component when connection fails or is cancelled
+  useEffect(() => {
+    if (connectError && !isConnected) {
+      // Connection was cancelled or failed, reset the Select to show placeholder
+      // Use setTimeout to avoid synchronous setState in effect
+      const timer = setTimeout(() => {
+        setSelectKey((prev) => prev + 1)
+        resetConnect()
+      }, 0)
+      return () => clearTimeout(timer)
+    }
+  }, [connectError, isConnected, resetConnect])
+
+  // Reset Select when connection succeeds (component will be hidden anyway)
+  useEffect(() => {
+    if (isConnected) {
+      const timer = setTimeout(() => {
+        setSelectKey((prev) => prev + 1)
+      }, 0)
+      return () => clearTimeout(timer)
+    }
+  }, [isConnected])
+
   const handleConnectorChange = (connectorId: string) => {
+    // Save preference for future use
     selectConnector(connectorId)
 
-    // If not connected, attempt to connect with selected connector
+    // Trigger connection with selected connector
     if (!isConnected) {
       const selectedConnector = connectors.find((c) => c.id === connectorId)
       if (selectedConnector) {
         try {
-          connect({ connector: selectedConnector.factory() })
+          connect(
+            { connector: selectedConnector.factory() },
+            {
+              onError: (error) => {
+                // Handle connection errors gracefully
+                console.error('Connection error:', error)
+                // Reset Select to show placeholder
+                setSelectKey((prev) => prev + 1)
+              },
+            }
+          )
         } catch (error) {
           console.error('Failed to connect:', error)
+          // Reset Select to show placeholder
+          setSelectKey((prev) => prev + 1)
         }
       }
     }
   }
-
-  const currentConnectorName = useMemo(() => {
-    return connectors.find((c) => c.id === currentConnectorId)?.name ?? 'Select connector'
-  }, [currentConnectorId, connectors])
 
   return (
     <section className="flex flex-col gap-2">
@@ -73,7 +103,8 @@ export function ConnectorSelector() {
         Wallet Connector
       </Label> */}
       <Select
-        value={currentConnectorId || undefined}
+        key={selectKey}
+        value={undefined}
         onValueChange={handleConnectorChange}
         disabled={isConnected}
       >
@@ -82,7 +113,7 @@ export function ConnectorSelector() {
           aria-label="Select wallet connector"
           className="w-full sm:w-[200px]"
         >
-          <SelectValue placeholder="Connect Wallet">{currentConnectorName}</SelectValue>
+          <SelectValue placeholder="Connect Wallet" />
         </SelectTrigger>
         <SelectContent>
           {connectors.map((conn) => (
