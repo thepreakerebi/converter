@@ -3,10 +3,59 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { UseReadContractParameters } from 'wagmi'
 import type { Connector } from 'wagmi'
-import { mainnet, sepolia } from 'wagmi/chains'
+import {
+  mainnet,
+  sepolia,
+  polygon,
+  arbitrum,
+  optimism,
+  base,
+  bsc,
+  avalanche,
+  fantom,
+  gnosis,
+  zkSync,
+  scroll,
+  linea,
+  blast,
+  mantle,
+  celo,
+  aurora,
+  metis,
+  moonbeam,
+  moonriver,
+  cronos,
+  boba,
+  zora,
+} from 'wagmi/chains'
 
 // Mock wagmi config first (must be hoisted)
 vi.mock('../../lib/wagmi.config', () => ({
+  chains: [
+    mainnet,
+    sepolia,
+    polygon,
+    arbitrum,
+    optimism,
+    base,
+    bsc,
+    avalanche,
+    fantom,
+    gnosis,
+    zkSync,
+    scroll,
+    linea,
+    blast,
+    mantle,
+    celo,
+    aurora,
+    metis,
+    moonbeam,
+    moonriver,
+    cronos,
+    boba,
+    zora,
+  ],
   supportedChains: [mainnet, sepolia],
   WBTC_CONTRACT_ADDRESS: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
 }))
@@ -143,7 +192,7 @@ describe('WalletInfoBar', () => {
     render(<WalletInfoBar />)
 
     expect(screen.getByText(mainnet.name)).toBeInTheDocument()
-    expect(screen.getByText(/Chain ID: 1/i)).toBeInTheDocument()
+    // Chain ID display removed - not user-friendly
   })
 
   it('should show unsupported network badge when not on supported chain', () => {
@@ -171,9 +220,7 @@ describe('WalletInfoBar', () => {
     // "Unsupported Network" appears in both badge and alert
     const unsupportedTexts = screen.getAllByText(/Unsupported Network/i)
     expect(unsupportedTexts.length).toBeGreaterThan(0)
-    // Chain ID might appear multiple times, use getAllByText
-    const chainIdTexts = screen.getAllByText(/Chain ID: 5/i)
-    expect(chainIdTexts.length).toBeGreaterThan(0)
+    // Chain ID display removed - not user-friendly
   })
 
   it('should show wBTC balance when connected and on mainnet', async () => {
@@ -266,29 +313,7 @@ describe('WalletInfoBar', () => {
     expect(mockUseDisconnect).toHaveBeenCalled()
   })
 
-  it('should show network warning alert when on unsupported network', () => {
-    const mockConnector = {
-      id: 'io.metamask',
-      name: 'MetaMask',
-    } as unknown as Connector
-
-    mockUseWalletStatus.mockReturnValue({
-      isConnected: true,
-      connector: mockConnector,
-      chainId: 5, // Unsupported network
-      isSupportedChain: false,
-      supportedChains: [mainnet, sepolia],
-      currentChain: null,
-      retryDetection: vi.fn(),
-      selectConnector: vi.fn(),
-    })
-    mockUseAccount.mockReturnValue({
-      address: '0x1234567890123456789012345678901234567890' as `0x${string}`,
-    })
-
-    render(<WalletInfoBar />)
-
-    expect(screen.getByText(/Unsupported network detected/i)).toBeInTheDocument()
-  })
+  // Network warning alert test removed - alert moved to page.tsx
+  // The alert is now displayed in the page component, not WalletInfoBar
 })
 

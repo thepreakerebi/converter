@@ -1,11 +1,15 @@
 
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { useConnections } from 'wagmi'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
 import { WalletInfoBar } from './_components/walletInfoBar'
 import { ConversionCard } from './_components/conversionCard'
 import { ConversionResult } from './_components/conversionResult'
+import { useWalletStatus } from '@/hooks/useWalletStatus'
+import { chains } from '@/lib/wagmi.config'
 
 type CurrencyMode = 'USD' | 'WBTC'
 
@@ -27,6 +31,14 @@ interface ConversionData {
 export default function Home() {
   const connections = useConnections()
   const isConnected = connections.length > 0
+  const { chainId, isSupportedChain } = useWalletStatus()
+
+  // Get network name for unsupported chains
+  const unsupportedNetworkName = useMemo(() => {
+    if (!chainId || isSupportedChain) return null
+    const detectedChain = chains.find((chain) => chain.id === chainId)
+    return detectedChain?.name ?? 'This network'
+  }, [chainId, isSupportedChain])
   const [conversionData, setConversionData] = useState<ConversionData>({
     convertedAmount: null,
     currencyMode: 'USD',
@@ -133,6 +145,16 @@ export default function Home() {
       <section className={`min-h-screen ${isConnected ? 'pt-28' : 'pt-32 md:pt-24'}`}>
         <section className="container mx-auto px-4 py-8">
           <section className="max-w-4xl mx-auto space-y-8">
+            {/* Unsupported network alert */}
+            {isConnected && !isSupportedChain && unsupportedNetworkName && (
+              <Alert variant="destructive" className="max-w-md mx-auto">
+                <AlertCircle className="size-4" aria-hidden="true" />
+                <AlertDescription>
+                  {`${unsupportedNetworkName} is not supported. Please switch to Ethereum Mainnet or Sepolia Testnet to interact with wBTC.`}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Page header */}
             <header className="text-center space-y-2">
               <h1 className="text-4xl font-bold tracking-tight">wBTC Converter</h1>

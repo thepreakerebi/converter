@@ -1,12 +1,60 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render, screen } from '@testing-library/react'
 import type { Connector } from 'wagmi'
-import { mainnet, sepolia } from 'wagmi/chains'
+import {
+  mainnet,
+  sepolia,
+  polygon,
+  arbitrum,
+  optimism,
+  base,
+  bsc,
+  avalanche,
+  fantom,
+  gnosis,
+  zkSync,
+  scroll,
+  linea,
+  blast,
+  mantle,
+  celo,
+  aurora,
+  metis,
+  moonbeam,
+  moonriver,
+  cronos,
+  boba,
+  zora,
+} from 'wagmi/chains'
 
 // Mock wagmi config first (must be hoisted)
 vi.mock('../../lib/wagmi.config', () => ({
-  supportedChains: [mainnet, sepolia],
+  chains: [
+    mainnet,
+    sepolia,
+    polygon,
+    arbitrum,
+    optimism,
+    base,
+    bsc,
+    avalanche,
+    fantom,
+    gnosis,
+    zkSync,
+    scroll,
+    linea,
+    blast,
+    mantle,
+    celo,
+    aurora,
+    metis,
+    moonbeam,
+    moonriver,
+    cronos,
+    boba,
+    zora,
+  ], // Include common chains for detection
+  supportedChains: [mainnet, sepolia], // Only mainnet and sepolia are supported
   WBTC_CONTRACT_ADDRESS: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
 }))
 
@@ -88,7 +136,7 @@ describe('Network Resilience Integration', () => {
     expect(screen.getByText(mainnet.name)).toBeInTheDocument()
   })
 
-  it('should display unsupported network badge and retry button for unsupported chain', () => {
+  it('should display unsupported network badge and retry button for Polygon', () => {
     const mockConnector = {
       id: 'io.metamask',
       name: 'MetaMask',
@@ -100,9 +148,75 @@ describe('Network Resilience Integration', () => {
 
     render(<WalletInfoBar />)
 
-    // Check for badge with unsupported network text
+    // Check for badge with unsupported network text (now includes network name)
     const badges = screen.getAllByText(/unsupported network/i)
     expect(badges.length).toBeGreaterThan(0)
+    // Check that it shows network name format: "Unsupported Network: Polygon"
+    expect(screen.getByText(/unsupported network: polygon/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/retry network detection/i)).toBeInTheDocument()
+  })
+
+  it('should display unsupported network badge for Arbitrum', () => {
+    const mockConnector = {
+      id: 'io.metamask',
+      name: 'MetaMask',
+    } as unknown as Connector
+
+    mockConnections.mockReturnValue([{ connector: mockConnector }])
+    mockChainId.mockReturnValue(arbitrum.id) // Arbitrum (unsupported)
+    mockAccount.mockReturnValue({ isConnected: true, address: '0x123' })
+
+    render(<WalletInfoBar />)
+
+    expect(screen.getByText(/unsupported network: arbitrum one/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/retry network detection/i)).toBeInTheDocument()
+  })
+
+  it('should display unsupported network badge for Optimism', () => {
+    const mockConnector = {
+      id: 'io.metamask',
+      name: 'MetaMask',
+    } as unknown as Connector
+
+    mockConnections.mockReturnValue([{ connector: mockConnector }])
+    mockChainId.mockReturnValue(optimism.id) // Optimism (unsupported)
+    mockAccount.mockReturnValue({ isConnected: true, address: '0x123' })
+
+    render(<WalletInfoBar />)
+
+    expect(screen.getByText(/unsupported network: op mainnet/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/retry network detection/i)).toBeInTheDocument()
+  })
+
+  it('should display unsupported network badge for Base', () => {
+    const mockConnector = {
+      id: 'io.metamask',
+      name: 'MetaMask',
+    } as unknown as Connector
+
+    mockConnections.mockReturnValue([{ connector: mockConnector }])
+    mockChainId.mockReturnValue(base.id) // Base (unsupported)
+    mockAccount.mockReturnValue({ isConnected: true, address: '0x123' })
+
+    render(<WalletInfoBar />)
+
+    expect(screen.getByText(/unsupported network: base/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/retry network detection/i)).toBeInTheDocument()
+  })
+
+  it('should display unsupported network badge for BSC', () => {
+    const mockConnector = {
+      id: 'io.metamask',
+      name: 'MetaMask',
+    } as unknown as Connector
+
+    mockConnections.mockReturnValue([{ connector: mockConnector }])
+    mockChainId.mockReturnValue(bsc.id) // BSC (unsupported)
+    mockAccount.mockReturnValue({ isConnected: true, address: '0x123' })
+
+    render(<WalletInfoBar />)
+
+    expect(screen.getByText(/unsupported network: bnb smart chain/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/retry network detection/i)).toBeInTheDocument()
   })
 
@@ -163,22 +277,6 @@ describe('Network Resilience Integration', () => {
     const retryButton = screen.getByLabelText(/retry network detection/i)
     expect(retryButton).toBeInTheDocument()
     expect(retryButton).toHaveTextContent(/retry detection/i)
-  })
-
-  it('should display chain ID when connected', () => {
-    const mockConnector = {
-      id: 'io.metamask',
-      name: 'MetaMask',
-    } as unknown as Connector
-
-    mockConnections.mockReturnValue([{ connector: mockConnector }])
-    mockChainId.mockReturnValue(mainnet.id)
-    mockAccount.mockReturnValue({ isConnected: true, address: '0x123' })
-
-    render(<WalletInfoBar />)
-
-    expect(screen.getByLabelText(/chain id/i)).toBeInTheDocument()
-    expect(screen.getByText(`Chain ID: ${mainnet.id}`)).toBeInTheDocument()
   })
 })
 

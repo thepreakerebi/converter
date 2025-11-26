@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button' // Still needed for Disconnect b
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 // import { metaMask, injected } from '@wagmi/connectors' // Commented out - ConnectorSelector handles connection
-import { AlertCircle, Wallet } from 'lucide-react'
+import { Wallet } from 'lucide-react'
 // import { XCircle } from 'lucide-react' // Commented out - not used after removing "Not connected" text
 import { wbtcContractConfig, WBTC_FUNCTIONS } from '@/lib/wbtc-contract'
 import { formatWbtc } from '@/lib/conversion'
@@ -22,7 +22,7 @@ import { ChainStatusBadge } from './chainStatusBadge'
  * Uses useWalletStatus hook for centralized wallet state management
  */
 export function WalletInfoBar() {
-  const { isConnected, chainId, isSupportedChain } = useWalletStatus()
+  const { isConnected, chainId } = useWalletStatus()
   const account = useAccount()
   const { disconnect } = useDisconnect()
   // const { connect } = useConnect() // Commented out - ConnectorSelector handles connection
@@ -159,18 +159,6 @@ export function WalletInfoBar() {
             </section>
           )}
         </section>
-
-        {/* Network warning alert */}
-        {isConnected && !isSupportedChain && (
-          <Alert variant="destructive" className="mt-3">
-            <AlertCircle className="size-4" aria-hidden="true" />
-            <AlertDescription>
-              {chainId
-                ? `Unsupported network detected (Chain ID: ${chainId}). Please switch to Ethereum Mainnet (Chain ID: ${mainnet.id}) or Sepolia Testnet (Chain ID: 11155111) to interact with wBTC.`
-                : 'Network not detected. Please ensure your wallet is connected to a supported network.'}
-            </AlertDescription>
-          </Alert>
-        )}
       </nav>
     </header>
   )

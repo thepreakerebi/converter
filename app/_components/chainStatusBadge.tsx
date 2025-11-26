@@ -3,6 +3,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useWalletStatus } from '@/hooks/useWalletStatus'
+import { chains } from '@/lib/wagmi.config'
 import { CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
 
 /**
@@ -12,6 +13,16 @@ import { CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
  */
 export function ChainStatusBadge() {
   const { chainId, isSupportedChain, currentChain, retryDetection } = useWalletStatus()
+
+  // Get chain name even if unsupported (from wagmi's full chains array)
+  const getChainName = () => {
+    if (!chainId) return null
+    if (currentChain) return currentChain.name
+    // Find chain in wagmi's full chains array even if not in supportedChains
+    return chains.find((chain) => chain.id === chainId)?.name ?? null
+  }
+
+  const chainName = getChainName()
 
   // Determine badge variant and content based on chain status
   const getBadgeContent = () => {
@@ -33,10 +44,15 @@ export function ChainStatusBadge() {
       }
     }
 
+    // Unsupported chain - show network name if available
+    const unsupportedText = chainName 
+      ? `Unsupported Network: ${chainName}`
+      : 'Unsupported Network'
+
     return {
       variant: 'destructive' as const,
       icon: <AlertCircle className="size-3" aria-hidden="true" />,
-      text: 'Unsupported Network',
+      text: unsupportedText,
       color: 'text-white',
     }
   }
@@ -53,12 +69,6 @@ export function ChainStatusBadge() {
         {badgeContent.icon}
         <span>{badgeContent.text}</span>
       </Badge>
-
-      {chainId && (
-        <span className="text-xs text-muted-foreground font-mono" aria-label="Chain ID">
-          Chain ID: {chainId}
-        </span>
-      )}
 
       {chainId && !isSupportedChain && (
         <Button
