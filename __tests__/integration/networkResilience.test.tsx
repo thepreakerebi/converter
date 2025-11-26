@@ -1,0 +1,183 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import type { Connector } from 'wagmi'
+import { mainnet, sepolia } from 'wagmi/chains'
+
+// Mock wagmi config first (must be hoisted)
+vi.mock('../../lib/wagmi.config', () => ({
+  supportedChains: [mainnet, sepolia],
+  WBTC_CONTRACT_ADDRESS: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+}))
+
+// Mock storage
+vi.mock('../../lib/storage', () => ({
+  saveConnectorPreference: vi.fn(),
+  loadConnectorPreference: vi.fn(() => null),
+  saveChainPreference: vi.fn(),
+  loadChainPreference: vi.fn(() => null),
+}))
+
+// Mock connectors
+vi.mock('@wagmi/connectors', () => ({
+  metaMask: vi.fn(() => ({ id: 'io.metamask', name: 'MetaMask' })),
+  walletConnect: vi.fn(() => ({ id: 'walletConnect', name: 'WalletConnect' })),
+  injected: vi.fn(() => ({ id: 'injected', name: 'Browser Wallet' })),
+}))
+
+// Mock wagmi hooks
+const mockConnections = vi.fn<() => Array<{ connector: Connector }>>(() => [])
+const mockChainId = vi.fn<() => number | undefined>(() => undefined)
+const mockAccount = vi.fn<() => { isConnected: boolean; address?: string }>(() => ({
+  isConnected: false,
+  address: undefined,
+}))
+const mockUseDisconnect = vi.fn()
+const mockUseConnect = vi.fn()
+const mockUseReadContract = vi.fn()
+
+vi.mock('wagmi', async () => {
+  const actual = await vi.importActual('wagmi')
+  return {
+    ...actual,
+    useConnections: () => mockConnections(),
+    useChainId: () => mockChainId(),
+    useAccount: () => mockAccount(),
+    useDisconnect: () => ({ disconnect: mockUseDisconnect }),
+    useConnect: () => ({ connect: mockUseConnect }),
+    useReadContract: () => mockUseReadContract(),
+  }
+})
+
+// Import component after mocks
+import { WalletInfoBar } from '../../app/_components/walletInfoBar'
+
+describe('Network Resilience Integration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+    mockUseReadContract.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+    })
+  })
+
+  it('should display connector selector when not connected', () => {
+    mockConnections.mockReturnValue([])
+    mockAccount.mockReturnValue({ isConnected: false, address: undefined })
+
+    render(<WalletInfoBar />)
+
+    expect(screen.getByLabelText(/select wallet connector/i)).toBeInTheDocument()
+    expect(screen.getByText(/not connected/i)).toBeInTheDocument()
+  })
+
+  it('should display chain status badge when connected to supported chain', () => {
+    const mockConnector = {
+      id: 'io.metamask',
+      name: 'MetaMask',
+    } as unknown as Connector
+
+    mockConnections.mockReturnValue([{ connector: mockConnector }])
+    mockChainId.mockReturnValue(mainnet.id)
+    mockAccount.mockReturnValue({ isConnected: true, address: '0x123' })
+
+    render(<WalletInfoBar />)
+
+    expect(screen.getByLabelText(/network:/i)).toBeInTheDocument()
+    expect(screen.getByText(mainnet.name)).toBeInTheDocument()
+  })
+
+  it('should display unsupported network badge and retry button for unsupported chain', () => {
+    const mockConnector = {
+      id: 'io.metamask',
+      name: 'MetaMask',
+    } as unknown as Connector
+
+    mockConnections.mockReturnValue([{ connector: mockConnector }])
+    mockChainId.mockReturnValue(137) // Polygon (unsupported)
+    mockAccount.mockReturnValue({ isConnected: true, address: '0x123' })
+
+    render(<WalletInfoBar />)
+
+    // Check for badge with unsupported network text
+    const badges = screen.getAllByText(/unsupported network/i)
+    expect(badges.length).toBeGreaterThan(0)
+    expect(screen.getByLabelText(/retry network detection/i)).toBeInTheDocument()
+  })
+
+  it('should display connector selector when not connected', () => {
+    mockConnections.mockReturnValue([])
+    mockAccount.mockReturnValue({ isConnected: false, address: undefined })
+
+    render(<WalletInfoBar />)
+
+    // Verify connector selector is rendered
+    expect(screen.getByLabelText(/select wallet connector/i)).toBeInTheDocument()
+  })
+
+  it('should disable connector selector when connected', () => {
+    const mockConnector = {
+      id: 'io.metamask',
+      name: 'MetaMask',
+    } as unknown as Connector
+
+    mockConnections.mockReturnValue([{ connector: mockConnector }])
+    mockChainId.mockReturnValue(mainnet.id)
+    mockAccount.mockReturnValue({ isConnected: true, address: '0x123' })
+
+    render(<WalletInfoBar />)
+
+    // Connector selector should not be visible when connected
+    expect(screen.queryByLabelText(/select wallet connector/i)).not.toBeInTheDocument()
+  })
+
+  it('should display correct chain name for Sepolia testnet', () => {
+    const mockConnector = {
+      id: 'io.metamask',
+      name: 'MetaMask',
+    } as unknown as Connector
+
+    mockConnections.mockReturnValue([{ connector: mockConnector }])
+    mockChainId.mockReturnValue(sepolia.id)
+    mockAccount.mockReturnValue({ isConnected: true, address: '0x123' })
+
+    render(<WalletInfoBar />)
+
+    expect(screen.getByText(sepolia.name)).toBeInTheDocument()
+  })
+
+  it('should show retry button for unsupported chains', () => {
+    const mockConnector = {
+      id: 'io.metamask',
+      name: 'MetaMask',
+    } as unknown as Connector
+
+    mockConnections.mockReturnValue([{ connector: mockConnector }])
+    mockChainId.mockReturnValue(137) // Polygon
+    mockAccount.mockReturnValue({ isConnected: true, address: '0x123' })
+
+    render(<WalletInfoBar />)
+
+    const retryButton = screen.getByLabelText(/retry network detection/i)
+    expect(retryButton).toBeInTheDocument()
+    expect(retryButton).toHaveTextContent(/retry detection/i)
+  })
+
+  it('should display chain ID when connected', () => {
+    const mockConnector = {
+      id: 'io.metamask',
+      name: 'MetaMask',
+    } as unknown as Connector
+
+    mockConnections.mockReturnValue([{ connector: mockConnector }])
+    mockChainId.mockReturnValue(mainnet.id)
+    mockAccount.mockReturnValue({ isConnected: true, address: '0x123' })
+
+    render(<WalletInfoBar />)
+
+    expect(screen.getByLabelText(/chain id/i)).toBeInTheDocument()
+    expect(screen.getByText(`Chain ID: ${mainnet.id}`)).toBeInTheDocument()
+  })
+})
+
