@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useConnections } from 'wagmi'
 import { WalletInfoBar } from './_components/walletInfoBar'
 import { ConversionCard } from './_components/conversionCard'
@@ -35,23 +35,56 @@ export default function Home() {
   })
   const conversionResultRef = useRef<HTMLElement>(null)
   const conversionSectionRef = useRef<HTMLElement>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const cardContentRef = useRef<HTMLDivElement | null>(null)
 
-  // Scroll to position input field optimally on small screens when focused
-  const handleInputFocus = useCallback((inputElement: HTMLInputElement | null, cardContentElement: HTMLDivElement | null) => {
+  // Scroll to ensure both input and conversion result are visible on small screens
+  const scrollToShowInputAndResult = useCallback(() => {
     // Only scroll on small screens (sm and below, which is < 640px)
-    if (window.innerWidth < 640 && inputElement && cardContentElement) {
-      // Small delay to ensure layout is stable and conversion result can render
-      setTimeout(() => {
-        const cardContentRect = cardContentElement.getBoundingClientRect()
+    if (window.innerWidth >= 640) return
+
+    const inputEl = inputRef.current
+    const cardContentEl = cardContentRef.current
+    const resultEl = conversionResultRef.current
+
+    if (!inputEl || !cardContentEl) return
+
+    setTimeout(() => {
+      const fixedHeaderHeight = isConnected ? 112 : 128
+      const viewportHeight = window.innerHeight
+      // Estimate keyboard height (typically 300-400px on mobile)
+      const estimatedKeyboardHeight = 350
+      const availableHeight = viewportHeight - estimatedKeyboardHeight
+
+      const cardContentRect = cardContentEl.getBoundingClientRect()
+      
+      // If result exists, check its position
+      let resultRect: DOMRect | null = null
+      if (resultEl) {
+        resultRect = resultEl.getBoundingClientRect()
+      }
+
+      // Calculate the total height needed (input area + result if exists)
+      const inputAreaHeight = cardContentRect.height
+      const resultHeight = resultRect ? resultRect.height : 0
+      const totalNeededHeight = inputAreaHeight + resultHeight + 32 // 32px spacing
+
+      // If result exists and is not visible, scroll to show both
+      if (resultRect && resultRect.bottom > availableHeight) {
+        // Calculate scroll position to show result at bottom of available space
         const currentScrollY = window.scrollY
-        const fixedHeaderHeight = isConnected ? 112 : 128 // Approximate fixed header height (pt-28 = 112px, pt-32 = 128px)
+        const resultTop = resultRect.top + currentScrollY
+        const targetScrollY = resultTop - (availableHeight - resultHeight - 16) // 16px padding
         
-        // Calculate optimal scroll position: position CardContent start just below fixed header
-        // This will hide the page header, card title, and card description above
-        const cardContentTop = cardContentRect.top + currentScrollY
-        const targetScrollY = cardContentTop - fixedHeaderHeight - 8 // 8px padding for breathing room
+        window.scrollTo({
+          top: Math.max(0, targetScrollY),
+          behavior: 'smooth',
+        })
+      } else if (totalNeededHeight <= availableHeight) {
+        // Both fit, position input area optimally
+        const cardContentTop = cardContentRect.top + window.scrollY
+        const targetScrollY = cardContentTop - fixedHeaderHeight - 8
         
-        // Only scroll if CardContent is not already in optimal position
         const currentCardContentTop = cardContentRect.top
         const optimalTop = fixedHeaderHeight + 8
         if (Math.abs(currentCardContentTop - optimalTop) > 20) {
@@ -60,9 +93,39 @@ export default function Home() {
             behavior: 'smooth',
           })
         }
-      }, 150)
-    }
+      } else {
+        // Content is taller than available space, prioritize showing input
+        const cardContentTop = cardContentRect.top + window.scrollY
+        const targetScrollY = cardContentTop - fixedHeaderHeight - 8
+        
+        window.scrollTo({
+          top: targetScrollY,
+          behavior: 'smooth',
+        })
+      }
+    }, 200)
   }, [isConnected])
+
+  // Scroll to position input field optimally on small screens when focused
+  const handleInputFocus = useCallback((inputElement: HTMLInputElement | null, cardContentElement: HTMLDivElement | null) => {
+    // Store refs for later use
+    inputRef.current = inputElement
+    cardContentRef.current = cardContentElement
+    
+    // Trigger scroll calculation
+    scrollToShowInputAndResult()
+  }, [scrollToShowInputAndResult])
+
+  // Watch for conversion result appearance and ensure it's visible
+  useEffect(() => {
+    // Only on small screens
+    if (window.innerWidth >= 640) return
+
+    // When conversion result appears (convertedAmount changes from null to a value)
+    if (conversionData.convertedAmount !== null && !conversionData.error) {
+      scrollToShowInputAndResult()
+    }
+  }, [conversionData.convertedAmount, conversionData.error, scrollToShowInputAndResult])
 
   return (
     <main>
