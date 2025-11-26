@@ -68,8 +68,8 @@ describe('Network Resilience Integration', () => {
 
     render(<WalletInfoBar />)
 
-    expect(screen.getByLabelText(/select wallet connector/i)).toBeInTheDocument()
-    expect(screen.getByText(/not connected/i)).toBeInTheDocument()
+    // "Not connected" text removed - ConnectorSelector is the primary UI
+    expect(screen.getByRole('combobox')).toBeInTheDocument()
   })
 
   it('should display chain status badge when connected to supported chain', () => {
@@ -112,8 +112,9 @@ describe('Network Resilience Integration', () => {
 
     render(<WalletInfoBar />)
 
-    // Verify connector selector is rendered
-    expect(screen.getByLabelText(/select wallet connector/i)).toBeInTheDocument()
+    // Verify connector selector is rendered (check for combobox role or label)
+    const connectorSelector = screen.getByRole('combobox', { name: /select wallet connector/i })
+    expect(connectorSelector).toBeInTheDocument()
   })
 
   it('should disable connector selector when connected', () => {
