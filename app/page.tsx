@@ -193,7 +193,7 @@ export default function Home() {
   return (
     <main>
       <WalletInfoBar selectedAssetChain={selectedAssetChain} onAssetChainChange={setSelectedAssetChain} />
-      <section className={`min-h-screen ${isConnected ? 'pt-28' : 'pt-32 md:pt-24'}`}>
+      <section className={`min-h-screen ${isConnected ? 'pt-36 md:pt-28' : 'pt-36 md:pt-24'}`}>
         <section className="container mx-auto px-4 py-8">
           <section className="max-w-4xl mx-auto space-y-8">
             {/* Show only one alert: prioritize unsupported network, then asset-chain mismatch */}

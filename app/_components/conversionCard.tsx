@@ -12,6 +12,7 @@ import { AlertCircle, ArrowLeftRight, DollarSign, X, ArrowRightLeft } from 'luci
 import type { AssetChainCombination } from '@/lib/assets-config'
 import { BridgeForm } from './bridgeForm'
 import { useBridgeTransaction } from '@/hooks/useBridgeTransaction'
+import { motion, AnimatePresence } from 'motion/react'
 import {
   Tooltip,
   TooltipContent,
@@ -534,7 +535,7 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
 
         {/* Bridge Transaction Section */}
         <section className="space-y-4 border-t pt-4">
-          <section className="flex items-center justify-between">
+          <section className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <h3 className="text-lg font-semibold">Bridge Transaction</h3>
             <Button
               type="button"
@@ -553,23 +554,33 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
             </Button>
           </section>
 
-          {showBridgeForm && (
-            <BridgeForm 
-              selectedAssetChain={selectedAssetChain ?? null}
-              bridgeState={bridgeState}
-              isSubmitting={isSubmitting}
-              bridgeError={bridgeError}
-              onSubmit={submitTransaction}
-              onRetry={retryTransaction}
-              onReset={() => {
-                resetTransaction()
-                // Reset form fields will be handled by BridgeForm's handleReset
-              }}
-              onBridgeSuccess={() => {
-                // Optionally handle success
-              }}
-            />
-          )}
+          <AnimatePresence mode="wait">
+            {showBridgeForm && (
+              <motion.section
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="space-y-4 overflow-hidden"
+              >
+                <BridgeForm 
+                  selectedAssetChain={selectedAssetChain ?? null}
+                  bridgeState={bridgeState}
+                  isSubmitting={isSubmitting}
+                  bridgeError={bridgeError}
+                  onSubmit={submitTransaction}
+                  onRetry={retryTransaction}
+                  onReset={() => {
+                    resetTransaction()
+                    // Reset form fields will be handled by BridgeForm's handleReset
+                  }}
+                  onBridgeSuccess={() => {
+                    // Optionally handle success
+                  }}
+                />
+              </motion.section>
+            )}
+          </AnimatePresence>
         </section>
       </CardContent>
     </Card>
