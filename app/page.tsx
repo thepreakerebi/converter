@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState, useRef, useCallback, useMemo } from 'react'
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import { useConnections } from 'wagmi'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
@@ -12,15 +12,6 @@ import { chains } from '@/lib/wagmi.config'
 import type { AssetChainCombination } from '@/lib/assets-config'
 import { getAllAssetChainCombinations } from '@/lib/assets-config'
 import { mainnet } from 'wagmi/chains'
-
-type CurrencyMode = 'USD' | 'TOKEN'
-
-interface ConversionData {
-  convertedAmount: number | null
-  currencyMode: CurrencyMode
-  inputValue: string
-  error: string | null
-}
 
 /**
  * Home Page
@@ -66,12 +57,61 @@ export default function Home() {
     }
     return null
   }, [isConnected, selectedAssetChain, chainId])
-  const [conversionData, setConversionData] = useState<ConversionData>({
-    convertedAmount: null,
-    currencyMode: 'USD',
-    inputValue: '',
-    error: null,
-  })
+
+  // State to control alert visibility (auto-dismiss after 10s or on disconnect)
+  const [alertDismissed, setAlertDismissed] = useState(false)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const mismatchKeyRef = useRef<string>('')
+
+  // Derive whether to show alert: show if mismatch exists, connected, and not dismissed
+  const shouldShowAlert = useMemo(() => {
+    return !!(assetChainMismatch && isConnected && !alertDismissed)
+  }, [assetChainMismatch, isConnected, alertDismissed])
+
+  // Handle auto-dismiss timeout and reset dismissed state when mismatch changes
+  useEffect(() => {
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+
+    // Create a unique key for this mismatch
+    const currentMismatchKey = assetChainMismatch 
+      ? `${assetChainMismatch.selectedAsset}-${assetChainMismatch.selectedChain}-${assetChainMismatch.connectedChain}`
+      : ''
+
+    // Reset dismissed state when mismatch changes (new mismatch = show alert again)
+    // Use setTimeout to avoid React Compiler warning about synchronous setState
+    if (currentMismatchKey !== mismatchKeyRef.current) {
+      setTimeout(() => {
+        setAlertDismissed(false)
+      }, 0)
+      mismatchKeyRef.current = currentMismatchKey
+    }
+
+    // If disconnected or no mismatch, reset dismissed state
+    if (!isConnected || !assetChainMismatch) {
+      setTimeout(() => {
+        setAlertDismissed(false)
+      }, 0)
+      return
+    }
+
+    // Auto-dismiss after 10 seconds
+    timeoutRef.current = setTimeout(() => {
+      setAlertDismissed(true)
+      timeoutRef.current = null
+    }, 10000)
+
+    // Cleanup timeout on unmount or dependency change
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
+    }
+  }, [assetChainMismatch, isConnected])
   const conversionSectionRef = useRef<HTMLElement>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const cardContentRef = useRef<HTMLDivElement | null>(null)
@@ -130,7 +170,7 @@ export default function Home() {
             )}
 
             {/* Asset-chain mismatch alert */}
-            {isConnected && assetChainMismatch && (
+            {shouldShowAlert && assetChainMismatch && (
               <Alert variant="destructive" className="max-w-md mx-auto">
                 <AlertCircle className="size-4" aria-hidden="true" />
                 <AlertDescription>
@@ -151,7 +191,6 @@ export default function Home() {
             <section className="space-y-4" aria-label="Currency conversion interface" ref={conversionSectionRef}>
               <ConversionCard 
                 selectedAssetChain={selectedAssetChain}
-                onConversionChange={setConversionData} 
                 onInputFocus={handleInputFocus} 
               />
             </section>
