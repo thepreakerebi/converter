@@ -2,7 +2,7 @@
 
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useAccount } from 'wagmi'
+import { useAccount, usePublicClient } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,9 +12,10 @@ import { AlertCircle } from 'lucide-react'
 import { bridgeFormSchema, type BridgeFormData } from '@/lib/bridge-schema'
 import type { AssetChainCombination } from '@/lib/assets-config'
 import { supportedChains } from '@/lib/wagmi.config'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import type { BridgeState } from '@/lib/bridge-state-machine'
 import { BridgeProgress } from './bridgeProgress'
+import { isAddress } from 'viem'
 
 /**
  * BridgeForm Component
@@ -43,6 +44,8 @@ export function BridgeForm({
   onBridgeSuccess 
 }: BridgeFormProps) {
   const { address } = useAccount()
+  const [contractAddressError, setContractAddressError] = useState<string | null>(null)
+  const [isCheckingAddress, setIsCheckingAddress] = useState(false)
 
   // Get all available destination chains (exclude source chain)
   const availableDestinationChains = useMemo(() => {
@@ -69,6 +72,82 @@ export function BridgeForm({
 
   // Watch form values for dynamic updates
   const destinationChain = watch('destinationChain')
+  const recipientAddress = watch('recipientAddress')
+  
+  // Get public client for the destination chain
+  // usePublicClient returns undefined if chainId is not configured in wagmi
+  const publicClient = usePublicClient({ chainId: destinationChain })
+  
+  // Debug: Log when public client is not available
+  useEffect(() => {
+    if (destinationChain && !publicClient) {
+      console.warn(`Public client not available for destination chain ${destinationChain}. Make sure the chain is configured in wagmi.config.ts with a transport.`)
+    }
+  }, [destinationChain, publicClient])
+
+  // Check if recipient address is a contract address
+  useEffect(() => {
+    const checkContractAddress = async () => {
+      // Reset error
+      setContractAddressError(null)
+      
+      // Skip if address is empty or invalid format
+      if (!recipientAddress || !isAddress(recipientAddress)) {
+        return
+      }
+
+      // Skip if address is the zero address
+      if (recipientAddress.toLowerCase() === '0x0000000000000000000000000000000000000000') {
+        return
+      }
+
+      // Skip if no destination chain
+      if (!destinationChain) {
+        return
+      }
+
+      // Check if public client is available
+      if (!publicClient) {
+        console.warn(`Public client not available for chain ${destinationChain}. Cannot check if address is contract.`)
+        // Still show a warning but don't block - this is a fallback
+        return
+      }
+
+      setIsCheckingAddress(true)
+      try {
+        // Get the code at the address - if it has code, it's a contract
+        // According to viem docs: returns '0x' or '0x0' for EOA, bytecode for contracts
+        const code = await publicClient.getCode({
+          address: recipientAddress as `0x${string}`,
+        })
+
+        // Check if code exists and is not empty (EOA returns '0x' or '0x0')
+        const hasCode = code && code !== '0x' && code !== '0x0' && code.length > 2
+        
+        if (hasCode) {
+          setContractAddressError('Recipient address is a contract address. Please use a wallet address (EOA) instead.')
+          console.log('Contract detected:', { address: recipientAddress, codeLength: code.length })
+        } else {
+          // Explicitly clear error if it's an EOA
+          setContractAddressError(null)
+        }
+      } catch (error) {
+        // Log the error for debugging
+        console.error('Failed to check if address is contract:', error)
+        // Don't block user on network errors, but log for debugging
+        // In production, you might want to show a warning
+      } finally {
+        setIsCheckingAddress(false)
+      }
+    }
+
+    // Debounce the check
+    const timeoutId = setTimeout(() => {
+      checkContractAddress()
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [recipientAddress, destinationChain, publicClient])
 
   // Update form when selectedAssetChain changes
   useMemo(() => {
@@ -96,6 +175,23 @@ export function BridgeForm({
   }, [address, setValue, watch])
 
   const onFormSubmit = async (data: BridgeFormData) => {
+    // Block submission if contract address error exists
+    if (contractAddressError) {
+      console.error('Form submission blocked: Contract address detected')
+      return
+    }
+    
+    // Additional check: if we're still checking, wait a bit
+    if (isCheckingAddress) {
+      console.warn('Form submission attempted while checking address, waiting...')
+      // Wait for check to complete (max 2 seconds)
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      if (contractAddressError) {
+        console.error('Form submission blocked after wait: Contract address detected')
+        return
+      }
+    }
+    
     await onSubmit(data)
     if (bridgeState.status === 'confirmed') {
       onBridgeSuccess?.()
@@ -108,6 +204,8 @@ export function BridgeForm({
     // Reset amount and recipient address fields
     setValue('amount', '')
     setValue('recipientAddress', address ?? '')
+    // Clear contract address error
+    setContractAddressError(null)
   }
 
   // Get asset symbol
@@ -210,6 +308,12 @@ export function BridgeForm({
         {errors.recipientAddress && (
           <p className="text-xs text-destructive">{errors.recipientAddress.message}</p>
         )}
+        {contractAddressError && (
+          <p className="text-xs text-destructive">{contractAddressError}</p>
+        )}
+        {isCheckingAddress && (
+          <p className="text-xs text-muted-foreground">Checking address...</p>
+        )}
         <p className="text-xs text-muted-foreground">
           {address 
             ? 'Pre-filled with your connected wallet address. You can change it if needed.'
@@ -222,6 +326,14 @@ export function BridgeForm({
         <Alert variant="destructive">
           <AlertCircle className="size-4" aria-hidden="true" />
           <AlertDescription>{bridgeError}</AlertDescription>
+        </Alert>
+      )}
+      
+      {/* Contract Address Error Alert */}
+      {contractAddressError && (
+        <Alert variant="destructive">
+          <AlertCircle className="size-4" aria-hidden="true" />
+          <AlertDescription>{contractAddressError}</AlertDescription>
         </Alert>
       )}
 
@@ -255,7 +367,7 @@ export function BridgeForm({
         <section className="flex gap-2">
           <Button
             type="submit"
-            disabled={isSubmitting || !selectedAssetChain}
+            disabled={isSubmitting || !selectedAssetChain || !!contractAddressError}
             className="flex-1 h-12 md:h-9"
             aria-label="Submit bridge transaction"
           >
