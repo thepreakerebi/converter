@@ -1,20 +1,17 @@
 
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import { useConnections } from 'wagmi'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
 import { WalletInfoBar } from './_components/walletInfoBar'
 import { ConversionCard } from './_components/conversionCard'
-import { ConversionResult } from './_components/conversionResult'
-
-type CurrencyMode = 'USD' | 'WBTC'
-
-interface ConversionData {
-  convertedAmount: number | null
-  currencyMode: CurrencyMode
-  inputValue: string
-  error: string | null
-}
+import { useWalletStatus } from '@/hooks/useWalletStatus'
+import { chains } from '@/lib/wagmi.config'
+import type { AssetChainCombination } from '@/lib/assets-config'
+import { getAllAssetChainCombinations } from '@/lib/assets-config'
+import { mainnet } from 'wagmi/chains'
 
 /**
  * Home Page
@@ -27,77 +24,154 @@ interface ConversionData {
 export default function Home() {
   const connections = useConnections()
   const isConnected = connections.length > 0
-  const [conversionData, setConversionData] = useState<ConversionData>({
-    convertedAmount: null,
-    currencyMode: 'USD',
-    inputValue: '',
-    error: null,
-  })
-  const conversionResultRef = useRef<HTMLElement>(null)
+  const { chainId, isSupportedChain } = useWalletStatus()
+
+  // Selected asset-chain combination state (lifted to page level for sharing)
+  // Default to wBTC on Ethereum Mainnet
+  const defaultAssetChain = useMemo(() => {
+    const combinations = getAllAssetChainCombinations()
+    return combinations.find((c) => c.assetId === 'wbtc' && c.chainId === mainnet.id) ?? null
+  }, [])
+
+  const [selectedAssetChain, setSelectedAssetChain] = useState<AssetChainCombination | null>(defaultAssetChain)
+
+  // Get network name for unsupported chains
+  const unsupportedNetworkName = useMemo(() => {
+    if (!chainId || isSupportedChain) return null
+    const detectedChain = chains.find((chain) => chain.id === chainId)
+    return detectedChain?.name ?? 'This network'
+  }, [chainId, isSupportedChain])
+
+  // Check if selected asset-chain matches connected chain
+  const assetChainMismatch = useMemo(() => {
+    if (!isConnected || !selectedAssetChain || !chainId) return null
+    
+    // Check if connected chain matches selected asset-chain
+    if (chainId !== selectedAssetChain.chainId) {
+      const connectedChain = chains.find((chain) => chain.id === chainId)
+      return {
+        selectedAsset: selectedAssetChain.asset.symbol,
+        selectedChain: selectedAssetChain.chain.name,
+        connectedChain: connectedChain?.name ?? 'Unknown Network',
+      }
+    }
+    return null
+  }, [isConnected, selectedAssetChain, chainId])
+
+  // State to control alert visibility (auto-dismiss after 10s or on disconnect)
+  const [unsupportedNetworkAlertDismissed, setUnsupportedNetworkAlertDismissed] = useState(false)
+  const [mismatchAlertDismissed, setMismatchAlertDismissed] = useState(false)
+  const unsupportedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const mismatchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const mismatchKeyRef = useRef<string>('')
+
+  // Determine which alert to show (prioritize unsupported network)
+  const shouldShowUnsupportedAlert = useMemo(() => {
+    return !!(isConnected && !isSupportedChain && unsupportedNetworkName && !unsupportedNetworkAlertDismissed)
+  }, [isConnected, isSupportedChain, unsupportedNetworkName, unsupportedNetworkAlertDismissed])
+
+  const shouldShowMismatchAlert = useMemo(() => {
+    // Only show mismatch alert if unsupported network alert is not showing
+    return !!(assetChainMismatch && isConnected && !mismatchAlertDismissed && !shouldShowUnsupportedAlert)
+  }, [assetChainMismatch, isConnected, mismatchAlertDismissed, shouldShowUnsupportedAlert])
+
+  // Handle auto-dismiss timeout for unsupported network alert
+  useEffect(() => {
+    // Clear any existing timeout
+    if (unsupportedTimeoutRef.current) {
+      clearTimeout(unsupportedTimeoutRef.current)
+      unsupportedTimeoutRef.current = null
+    }
+
+    // If disconnected or no unsupported network, reset dismissed state
+    if (!isConnected || !unsupportedNetworkName || isSupportedChain) {
+      setTimeout(() => {
+        setUnsupportedNetworkAlertDismissed(false)
+      }, 0)
+      return
+    }
+
+    // Auto-dismiss after 10 seconds
+    unsupportedTimeoutRef.current = setTimeout(() => {
+      setUnsupportedNetworkAlertDismissed(true)
+      unsupportedTimeoutRef.current = null
+    }, 10000)
+
+    // Cleanup timeout on unmount or dependency change
+    return () => {
+      if (unsupportedTimeoutRef.current) {
+        clearTimeout(unsupportedTimeoutRef.current)
+        unsupportedTimeoutRef.current = null
+      }
+    }
+  }, [isConnected, isSupportedChain, unsupportedNetworkName])
+
+  // Handle auto-dismiss timeout for mismatch alert
+  useEffect(() => {
+    // Clear any existing timeout
+    if (mismatchTimeoutRef.current) {
+      clearTimeout(mismatchTimeoutRef.current)
+      mismatchTimeoutRef.current = null
+    }
+
+    // Create a unique key for this mismatch
+    const currentMismatchKey = assetChainMismatch 
+      ? `${assetChainMismatch.selectedAsset}-${assetChainMismatch.selectedChain}-${assetChainMismatch.connectedChain}`
+      : ''
+
+    // Reset dismissed state when mismatch changes (new mismatch = show alert again)
+    if (currentMismatchKey !== mismatchKeyRef.current) {
+      setTimeout(() => {
+        setMismatchAlertDismissed(false)
+      }, 0)
+      mismatchKeyRef.current = currentMismatchKey
+    }
+
+    // If disconnected or no mismatch, reset dismissed state
+    if (!isConnected || !assetChainMismatch) {
+      setTimeout(() => {
+        setMismatchAlertDismissed(false)
+      }, 0)
+      return
+    }
+
+    // Auto-dismiss after 10 seconds
+    mismatchTimeoutRef.current = setTimeout(() => {
+      setMismatchAlertDismissed(true)
+      mismatchTimeoutRef.current = null
+    }, 10000)
+
+    // Cleanup timeout on unmount or dependency change
+    return () => {
+      if (mismatchTimeoutRef.current) {
+        clearTimeout(mismatchTimeoutRef.current)
+        mismatchTimeoutRef.current = null
+      }
+    }
+  }, [assetChainMismatch, isConnected])
   const conversionSectionRef = useRef<HTMLElement>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const cardContentRef = useRef<HTMLDivElement | null>(null)
 
-  // Scroll to ensure both input and conversion result are visible on small screens
-  const scrollToShowInputAndResult = useCallback(() => {
+  // Scroll to ensure input is visible on small screens
+  const scrollToShowInput = useCallback(() => {
     // Only scroll on small screens (sm and below, which is < 640px)
     if (window.innerWidth >= 640) return
 
     const inputEl = inputRef.current
     const cardContentEl = cardContentRef.current
-    const resultEl = conversionResultRef.current
 
     if (!inputEl || !cardContentEl) return
 
     setTimeout(() => {
       const fixedHeaderHeight = isConnected ? 112 : 128
-      const viewportHeight = window.innerHeight
-      // Estimate keyboard height (typically 300-400px on mobile)
-      const estimatedKeyboardHeight = 350
-      const availableHeight = viewportHeight - estimatedKeyboardHeight
-
       const cardContentRect = cardContentEl.getBoundingClientRect()
+      const cardContentTop = cardContentRect.top + window.scrollY
+      const targetScrollY = cardContentTop - fixedHeaderHeight - 8
       
-      // If result exists, check its position
-      let resultRect: DOMRect | null = null
-      if (resultEl) {
-        resultRect = resultEl.getBoundingClientRect()
-      }
-
-      // Calculate the total height needed (input area + result if exists)
-      const inputAreaHeight = cardContentRect.height
-      const resultHeight = resultRect ? resultRect.height : 0
-      const totalNeededHeight = inputAreaHeight + resultHeight + 32 // 32px spacing
-
-      // If result exists and is not visible, scroll to show both
-      if (resultRect && resultRect.bottom > availableHeight) {
-        // Calculate scroll position to show result at bottom of available space
-        const currentScrollY = window.scrollY
-        const resultTop = resultRect.top + currentScrollY
-        const targetScrollY = resultTop - (availableHeight - resultHeight - 16) // 16px padding
-        
-        window.scrollTo({
-          top: Math.max(0, targetScrollY),
-          behavior: 'smooth',
-        })
-      } else if (totalNeededHeight <= availableHeight) {
-        // Both fit, position input area optimally
-        const cardContentTop = cardContentRect.top + window.scrollY
-        const targetScrollY = cardContentTop - fixedHeaderHeight - 8
-        
-        const currentCardContentTop = cardContentRect.top
-        const optimalTop = fixedHeaderHeight + 8
-        if (Math.abs(currentCardContentTop - optimalTop) > 20) {
-          window.scrollTo({
-            top: targetScrollY,
-            behavior: 'smooth',
-          })
-        }
-      } else {
-        // Content is taller than available space, prioritize showing input
-        const cardContentTop = cardContentRect.top + window.scrollY
-        const targetScrollY = cardContentTop - fixedHeaderHeight - 8
-        
+      const currentCardContentTop = cardContentRect.top
+      const optimalTop = fixedHeaderHeight + 8
+      if (Math.abs(currentCardContentTop - optimalTop) > 20) {
         window.scrollTo({
           top: targetScrollY,
           behavior: 'smooth',
@@ -113,45 +187,47 @@ export default function Home() {
     cardContentRef.current = cardContentElement
     
     // Trigger scroll calculation
-    scrollToShowInputAndResult()
-  }, [scrollToShowInputAndResult])
-
-  // Watch for conversion result appearance and ensure it's visible
-  useEffect(() => {
-    // Only on small screens
-    if (window.innerWidth >= 640) return
-
-    // When conversion result appears (convertedAmount changes from null to a value)
-    if (conversionData.convertedAmount !== null && !conversionData.error) {
-      scrollToShowInputAndResult()
-    }
-  }, [conversionData.convertedAmount, conversionData.error, scrollToShowInputAndResult])
+    scrollToShowInput()
+  }, [scrollToShowInput])
 
   return (
     <main>
-      <WalletInfoBar />
-      <section className={`min-h-screen ${isConnected ? 'pt-28' : 'pt-32 md:pt-24'}`}>
+      <WalletInfoBar selectedAssetChain={selectedAssetChain} onAssetChainChange={setSelectedAssetChain} />
+      <section className={`min-h-screen ${isConnected ? 'pt-36 md:pt-28' : 'pt-36 md:pt-24'}`}>
         <section className="container mx-auto px-4 py-8">
           <section className="max-w-4xl mx-auto space-y-8">
+            {/* Show only one alert: prioritize unsupported network, then asset-chain mismatch */}
+            {shouldShowUnsupportedAlert && unsupportedNetworkName && (
+              <Alert variant="destructive" className="max-w-md mx-auto">
+                <AlertCircle className="size-4" aria-hidden="true" />
+                <AlertDescription>
+                  {`${unsupportedNetworkName} is not supported. Switch to Ethereum Mainnet, Sepolia, Polygon, or Arbitrum.`}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {shouldShowMismatchAlert && assetChainMismatch && (
+              <Alert variant="destructive" className="max-w-md mx-auto">
+                <AlertCircle className="size-4" aria-hidden="true" />
+                <AlertDescription>
+                  {`Switch wallet to ${assetChainMismatch.selectedChain} or select a different asset-chain.`}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Page header */}
             <header className="text-center space-y-2">
-              <h1 className="text-4xl font-bold tracking-tight">wBTC Converter</h1>
+              <h1 className="text-4xl font-bold tracking-tight">Multi-Asset Converter & Bridge</h1>
               <p className="text-lg text-muted-foreground">
-                Convert between USD and Wrapped Bitcoin (wBTC) on Ethereum Mainnet
+                Convert between USD and multiple ERC-20 tokens across EVM chains. Bridge assets seamlessly.
               </p>
             </header>
 
             {/* Conversion card */}
             <section className="space-y-4" aria-label="Currency conversion interface" ref={conversionSectionRef}>
-              <ConversionCard onConversionChange={setConversionData} onInputFocus={handleInputFocus} />
-              
-              {/* Conversion result */}
-              <ConversionResult
-                ref={conversionResultRef}
-                convertedAmount={conversionData.convertedAmount}
-                currencyMode={conversionData.currencyMode}
-                inputValue={conversionData.inputValue}
-                error={conversionData.error}
+              <ConversionCard 
+                selectedAssetChain={selectedAssetChain}
+                onInputFocus={handleInputFocus} 
               />
             </section>
           </section>

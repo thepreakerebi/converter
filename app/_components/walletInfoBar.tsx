@@ -1,61 +1,89 @@
 'use client'
 
-import { useConnections, useChainId, useDisconnect, useConnect, useAccount } from 'wagmi'
+import { useDisconnect, useAccount } from 'wagmi'
 import { useReadContract } from 'wagmi'
-import { mainnet } from 'wagmi/chains'
-import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button' // Still needed for Disconnect button
 import { Separator } from '@/components/ui/separator'
-import { metaMask, injected } from '@wagmi/connectors'
-import { AlertCircle, Wallet, CheckCircle2, XCircle } from 'lucide-react'
-import { wbtcContractConfig, WBTC_FUNCTIONS } from '@/lib/wbtc-contract'
-import { formatWbtc } from '@/lib/conversion'
+import { Wallet } from 'lucide-react'
 import { formatUnits } from 'viem'
+import { useWalletStatus } from '@/hooks/useWalletStatus'
+import { ConnectorSelector } from './connectorSelector'
+import { ChainStatusBadge } from './chainStatusBadge'
+import { AssetChainSelector } from './assetChainSelector'
+import type { AssetChainCombination } from '@/lib/assets-config'
+import { createAssetChainKey } from '@/lib/assets-config'
+import { erc20Abi } from 'viem'
 
 /**
  * WalletInfoBar Component
- * Fixed header displaying wallet connection status, network info, and wBTC balance
+ * Fixed header displaying wallet connection status, network info, and selected asset balance
+ * Uses useWalletStatus hook for centralized wallet state management
  */
-export function WalletInfoBar() {
-  const connections = useConnections()
-  const account = useAccount()
-  // Use account.isConnected for immediate disconnect updates (more reliable than connections.length)
-  const isConnected = account.isConnected ?? connections.length > 0
-  const chainId = useChainId()
-  const { disconnect } = useDisconnect()
-  const { connect } = useConnect()
+interface WalletInfoBarProps {
+  selectedAssetChain?: AssetChainCombination | null
+  onAssetChainChange?: (combination: AssetChainCombination | null) => void
+}
 
-  const isMainnet = chainId === mainnet.id
+export function WalletInfoBar({ selectedAssetChain, onAssetChainChange }: WalletInfoBarProps = {}) {
+  const { isConnected, chainId } = useWalletStatus()
+  const account = useAccount()
+  const { disconnect } = useDisconnect()
   const address = account.address
 
-  // Read wBTC balance if connected using balanceOf
-  const { data: wbtcBalanceRaw, isLoading: isLoadingBalance } = useReadContract({
-    ...wbtcContractConfig,
-    functionName: WBTC_FUNCTIONS.balanceOf,
+  // Determine if we should read balance for selected asset
+  const shouldReadBalance =
+    isConnected &&
+    !!selectedAssetChain &&
+    !!address &&
+    chainId === selectedAssetChain.chainId &&
+    selectedAssetChain.chainId in selectedAssetChain.asset.chains
+
+  // Get contract address and decimals for selected asset on current chain
+  const contractAddress = selectedAssetChain
+    ? (selectedAssetChain.asset.chains[selectedAssetChain.chainId]?.address as `0x${string}` | undefined)
+    : undefined
+  const assetDecimals = selectedAssetChain
+    ? selectedAssetChain.asset.chains[selectedAssetChain.chainId]?.decimals
+    : undefined
+
+  // Read balance for selected asset using ERC-20 balanceOf
+  const { data: balanceRaw, isLoading: isLoadingBalance } = useReadContract({
+    address: contractAddress,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
     args: address ? [address] : undefined,
     query: {
-      enabled: isConnected && isMainnet && !!address,
+      enabled: shouldReadBalance && !!contractAddress && !!address,
     },
   })
 
-  // Read decimals for formatting
+  // Read decimals for selected asset (fallback if not in config)
   const { data: decimals, isLoading: isLoadingDecimals } = useReadContract({
-    ...wbtcContractConfig,
-    functionName: WBTC_FUNCTIONS.decimals,
+    address: contractAddress,
+    abi: erc20Abi,
+    functionName: 'decimals',
     query: {
-      enabled: isConnected && isMainnet && !!address,
+      enabled: shouldReadBalance && !!contractAddress && assetDecimals === undefined,
     },
   })
 
   // Format balance - handle loading and zero balance cases
-  const wbtcBalance =
-    wbtcBalanceRaw !== undefined && decimals !== undefined
-      ? formatWbtc(Number(formatUnits(wbtcBalanceRaw, decimals)))
+  const displayDecimals = assetDecimals ?? decimals ?? 18
+  const balance =
+    balanceRaw !== undefined && displayDecimals !== undefined
+      ? Number(formatUnits(balanceRaw, displayDecimals))
       : null
-  
-  // Check if we're still loading balance or decimals
-  const isLoadingBalanceData = isLoadingBalance || isLoadingDecimals
+
+  // Format balance for display (show up to 6 decimal places, remove trailing zeros)
+  const formatBalance = (amount: number | null): string => {
+    if (amount === null) return '...'
+    if (amount === 0) return '0'
+    // Format with up to 6 decimal places, remove trailing zeros
+    return amount.toFixed(6).replace(/\.?0+$/, '')
+  }
+
+  const formattedBalance = formatBalance(balance)
+  const isLoadingBalanceData = isLoadingBalance || (isLoadingDecimals && assetDecimals === undefined)
 
   // Format address for display
   const formatAddress = (addr: string | undefined) => {
@@ -63,21 +91,22 @@ export function WalletInfoBar() {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`
   }
 
-  const handleConnect = () => {
-    // Try MetaMask first, fallback to injected connector
-    try {
-      connect({ connector: metaMask() })
-    } catch {
-      connect({ connector: injected() })
-    }
-  }
+  // handleConnect commented out - ConnectorSelector handles connection now
+  // const handleConnect = () => {
+  //   // Try MetaMask first, fallback to injected connector
+  //   try {
+  //     connect({ connector: metaMask() })
+  //   } catch {
+  //     connect({ connector: injected() })
+  //   }
+  // }
 
   const handleDisconnect = () => {
     disconnect()
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+    <header className="fixed top-0 left-0 right-0 z-20 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <nav className="container mx-auto px-4 py-3">
         <section
           className={`flex flex-col gap-3 ${
@@ -101,17 +130,17 @@ export function WalletInfoBar() {
                     {formatAddress(address)}
                   </span>
                 </section>
-                {isMainnet && (
+                {selectedAssetChain && (
                   <>
                     <Separator orientation="vertical" className="h-4" />
                     <section className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">Balance:</span>
-                      <span className="text-sm font-medium" aria-label="wBTC balance">
+                      <span className="text-sm font-medium" aria-label={`${selectedAssetChain.asset.symbol} balance`}>
                         {isLoadingBalanceData
                           ? '...'
-                          : wbtcBalance !== null
-                            ? wbtcBalance
-                            : '0 wBTC'}
+                          : balance !== null
+                            ? `${formattedBalance} ${selectedAssetChain.asset.symbol}`
+                            : `0 ${selectedAssetChain.asset.symbol}`}
                       </span>
                     </section>
                   </>
@@ -127,66 +156,37 @@ export function WalletInfoBar() {
               </>
             ) : (
               <section className="flex items-center gap-2">
-                <XCircle className="size-4 text-muted-foreground" aria-hidden="true" />
-                <span className="text-sm text-muted-foreground">Not connected</span>
-                <Button
+                {/* <XCircle className="size-4 text-muted-foreground" aria-hidden="true" />
+                <span className="text-sm text-muted-foreground">Not connected</span> */}
+                {/* Connect Wallet button commented out - ConnectorSelector handles connection */}
+                {/* <Button
                   variant="default"
                   size="sm"
                   onClick={handleConnect}
                   aria-label="Connect wallet"
                 >
                   Connect Wallet
-                </Button>
+                </Button> */}
               </section>
             )}
           </section>
 
-          {/* Right side: Network status (when connected) or Alert (when not connected) */}
+          {/* Right side: Network status (when connected) or Asset-Chain selector + Connector selector (when not connected) */}
           {isConnected ? (
-            <section className="flex items-center gap-2">
-              <Badge
-                variant={isMainnet ? 'default' : 'destructive'}
-                className="flex items-center gap-1"
-                aria-label={`Network: ${isMainnet ? 'Ethereum Mainnet' : 'Wrong Network'}`}
-              >
-                {isMainnet ? (
-                  <>
-                    <CheckCircle2 className="size-3" aria-hidden="true" />
-                    <span>Ethereum Mainnet</span>
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="size-3" aria-hidden="true" />
-                    <span>Wrong Network</span>
-                  </>
-                )}
-              </Badge>
-              {chainId && (
-                <span className="text-xs text-muted-foreground font-mono" aria-label="Chain ID">
-                  Chain ID: {chainId}
-                </span>
-              )}
+            <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              {/* AssetChainSelector removed when connected - only show when not connected */}
+              <ChainStatusBadge />
             </section>
           ) : (
-            <Alert className="w-auto max-w-fit">
-              <Wallet className="size-4" aria-hidden="true" />
-              <AlertDescription>
-                Connect your wallet to view on-chain wBTC contract details and your wBTC balance.
-              </AlertDescription>
-            </Alert>
+            <section className="flex flex-col gap-3 items-center md:flex-row md:items-center">
+              <AssetChainSelector
+                value={selectedAssetChain ? createAssetChainKey(selectedAssetChain.assetId, selectedAssetChain.chainId) : undefined}
+                onValueChange={(value, combination) => onAssetChainChange?.(combination ?? null)}
+              />
+              <ConnectorSelector />
+            </section>
           )}
         </section>
-
-        {/* Network warning alert */}
-        {isConnected && !isMainnet && (
-          <Alert variant="destructive" className="mt-3">
-            <AlertCircle className="size-4" aria-hidden="true" />
-            <AlertDescription>
-              Please switch to Ethereum Mainnet to interact with wBTC. wBTC is only available on
-              Ethereum Mainnet (Chain ID: {mainnet.id}).
-            </AlertDescription>
-          </Alert>
-        )}
       </nav>
     </header>
   )
