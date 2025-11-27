@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useConnections, useChainId } from 'wagmi'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/tooltip'
 import Image from 'next/image'
 import {
-  fetchTokenPrice,
   usdToToken,
   tokenToUsd,
   formatUsd,
@@ -29,6 +28,7 @@ import {
   parseInputValue,
 } from '@/lib/conversion'
 import { ConversionResult } from './conversionResult'
+import { useTokenPrices } from '@/hooks/useTokenPrices'
 // Removed wbtcContractConfig import - now using selected asset-chain
 
 type CurrencyMode = 'USD' | 'TOKEN'
@@ -81,8 +81,6 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
   const isConvertingFromToken = currencyMode === 'TOKEN'
   const [inputValue, setInputValue] = useState('')
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null)
-  const [tokenPrice, setTokenPrice] = useState<number | null>(null)
-  const [isLoadingPrice, setIsLoadingPrice] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [inputError, setInputError] = useState<string | null>(null)
   // const [isConverting, setIsConverting] = useState(false) // Not needed with real-time conversion
@@ -90,104 +88,71 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
   // Contract metadata is now read from selectedAssetChain config
   // No need for on-chain contract reads for metadata
 
-  // Fetch token price based on selected asset's CoinGecko ID
-  useEffect(() => {
-    const loadPrice = async () => {
-      if (!selectedAsset?.coingeckoId) {
-        // Default to wrapped-bitcoin if no asset selected
-        setIsLoadingPrice(true)
-        setError(null)
-        try {
-          const price = await fetchTokenPrice('wrapped-bitcoin')
-          setTokenPrice(price)
-        } catch (err) {
-          setError(
-            err instanceof Error ? err.message : 'Failed to fetch token price. Please try again.'
-          )
-        } finally {
-          setIsLoadingPrice(false)
-        }
-        return
-      }
+  // Fetch token prices using TanStack Query hook (with caching)
+  const coingeckoId = selectedAsset?.coingeckoId ?? 'wrapped-bitcoin'
+  const { prices, isLoading: isLoadingPrice, error: priceError } = useTokenPrices([coingeckoId])
+  
+  // Get the price for the selected asset
+  const tokenPrice = prices[coingeckoId] ?? null
 
-      setIsLoadingPrice(true)
-      setError(null)
-      try {
-        const price = await fetchTokenPrice(selectedAsset.coingeckoId)
-        setTokenPrice(price)
-      } catch (err) {
-        setError(
-          err instanceof Error 
-            ? err.message 
-            : `Failed to fetch ${assetSymbol} price. Please try again.`
-        )
-      } finally {
-        setIsLoadingPrice(false)
-      }
+  // Set error if price fetch failed - use derived state to avoid React Compiler warning
+  const priceErrorMessage = useMemo(() => {
+    if (priceError) {
+      return priceError instanceof Error 
+        ? priceError.message 
+        : `Failed to fetch ${assetSymbol} price. Please try again.`
     }
+    if (tokenPrice === null && !isLoadingPrice && selectedAsset?.coingeckoId) {
+      return `Failed to fetch ${assetSymbol} price. Please try again.`
+    }
+    return null
+  }, [priceError, tokenPrice, isLoadingPrice, selectedAsset?.coingeckoId, assetSymbol])
 
-    loadPrice()
-  }, [selectedAsset?.coingeckoId, assetSymbol])
-
-  // Real-time conversion as user types
   useEffect(() => {
+    setError(priceErrorMessage)
+  }, [priceErrorMessage])
+
+  // Real-time conversion as user types - use useMemo to calculate, then sync to state
+  const calculatedConvertedAmount = useMemo(() => {
     // Only convert if we have valid input, token price, and no input errors
     if (!inputValue || inputValue === '.' || inputError || !tokenPrice) {
-      setConvertedAmount(null)
-      // Notify parent of conversion state change
-      onConversionChange?.({
-        convertedAmount: null,
-        currencyMode,
-        inputValue,
-        error: null,
-      })
-      return
+      return null
     }
 
     const amount = parseInputValue(inputValue)
     if (amount === 0) {
-      setConvertedAmount(null)
-      onConversionChange?.({
-        convertedAmount: null,
-        currencyMode,
-        inputValue,
-        error: null,
-      })
-      return
+      return null
     }
 
     try {
-      let result: number | null = null
       if (isConvertingToToken) {
         // Converting USD to selected token
-        const tokenAmount = usdToToken(amount, tokenPrice)
-        setConvertedAmount(tokenAmount)
-        result = tokenAmount
+        return usdToToken(amount, tokenPrice)
       } else {
         // Converting selected token to USD
-        const usdAmount = tokenToUsd(amount, tokenPrice)
-        setConvertedAmount(usdAmount)
-        result = usdAmount
+        return tokenToUsd(amount, tokenPrice)
       }
-      setError(null)
-      // Notify parent of conversion result
-      onConversionChange?.({
-        convertedAmount: result,
-        currencyMode,
-        inputValue,
-        error: null,
-      })
     } catch {
-      // Silently handle conversion errors for real-time updates
-      setConvertedAmount(null)
+      return null
+    }
+  }, [inputValue, tokenPrice, inputError, isConvertingToToken])
+
+  // Sync calculated amount to state and notify parent
+  useEffect(() => {
+    const syncAmount = () => {
+      setConvertedAmount(calculatedConvertedAmount)
       onConversionChange?.({
-        convertedAmount: null,
+        convertedAmount: calculatedConvertedAmount,
         currencyMode,
         inputValue,
         error: null,
       })
     }
-  }, [inputValue, tokenPrice, currencyMode, inputError, isConvertingToToken, onConversionChange])
+    
+    // Use setTimeout to avoid React Compiler warning about synchronous setState
+    const timeoutId = setTimeout(syncAmount, 0)
+    return () => clearTimeout(timeoutId)
+  }, [calculatedConvertedAmount, currencyMode, inputValue, onConversionChange])
 
   // Notify parent when error changes
   useEffect(() => {

@@ -12,7 +12,7 @@ global.ResizeObserver = class ResizeObserver {
 }
 
 // Setup MSW server for API mocking
-const server = setupServer(...handlers)
+export const server = setupServer(...handlers)
 
 // Start server before all tests
 beforeAll(() => {
