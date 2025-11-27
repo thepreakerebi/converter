@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
 import { WalletInfoBar } from './_components/walletInfoBar'
 import { ConversionCard } from './_components/conversionCard'
-import { ConversionResult } from './_components/conversionResult'
 import { useWalletStatus } from '@/hooks/useWalletStatus'
 import { chains } from '@/lib/wagmi.config'
 import type { AssetChainCombination } from '@/lib/assets-config'
@@ -73,71 +72,29 @@ export default function Home() {
     inputValue: '',
     error: null,
   })
-  const conversionResultRef = useRef<HTMLElement>(null)
   const conversionSectionRef = useRef<HTMLElement>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const cardContentRef = useRef<HTMLDivElement | null>(null)
 
-  // Scroll to ensure both input and conversion result are visible on small screens
-  const scrollToShowInputAndResult = useCallback(() => {
+  // Scroll to ensure input is visible on small screens
+  const scrollToShowInput = useCallback(() => {
     // Only scroll on small screens (sm and below, which is < 640px)
     if (window.innerWidth >= 640) return
 
     const inputEl = inputRef.current
     const cardContentEl = cardContentRef.current
-    const resultEl = conversionResultRef.current
 
     if (!inputEl || !cardContentEl) return
 
     setTimeout(() => {
       const fixedHeaderHeight = isConnected ? 112 : 128
-      const viewportHeight = window.innerHeight
-      // Estimate keyboard height (typically 300-400px on mobile)
-      const estimatedKeyboardHeight = 350
-      const availableHeight = viewportHeight - estimatedKeyboardHeight
-
       const cardContentRect = cardContentEl.getBoundingClientRect()
+      const cardContentTop = cardContentRect.top + window.scrollY
+      const targetScrollY = cardContentTop - fixedHeaderHeight - 8
       
-      // If result exists, check its position
-      let resultRect: DOMRect | null = null
-      if (resultEl) {
-        resultRect = resultEl.getBoundingClientRect()
-      }
-
-      // Calculate the total height needed (input area + result if exists)
-      const inputAreaHeight = cardContentRect.height
-      const resultHeight = resultRect ? resultRect.height : 0
-      const totalNeededHeight = inputAreaHeight + resultHeight + 32 // 32px spacing
-
-      // If result exists and is not visible, scroll to show both
-      if (resultRect && resultRect.bottom > availableHeight) {
-        // Calculate scroll position to show result at bottom of available space
-        const currentScrollY = window.scrollY
-        const resultTop = resultRect.top + currentScrollY
-        const targetScrollY = resultTop - (availableHeight - resultHeight - 16) // 16px padding
-        
-        window.scrollTo({
-          top: Math.max(0, targetScrollY),
-          behavior: 'smooth',
-        })
-      } else if (totalNeededHeight <= availableHeight) {
-        // Both fit, position input area optimally
-        const cardContentTop = cardContentRect.top + window.scrollY
-        const targetScrollY = cardContentTop - fixedHeaderHeight - 8
-        
-        const currentCardContentTop = cardContentRect.top
-        const optimalTop = fixedHeaderHeight + 8
-        if (Math.abs(currentCardContentTop - optimalTop) > 20) {
-          window.scrollTo({
-            top: targetScrollY,
-            behavior: 'smooth',
-          })
-        }
-      } else {
-        // Content is taller than available space, prioritize showing input
-        const cardContentTop = cardContentRect.top + window.scrollY
-        const targetScrollY = cardContentTop - fixedHeaderHeight - 8
-        
+      const currentCardContentTop = cardContentRect.top
+      const optimalTop = fixedHeaderHeight + 8
+      if (Math.abs(currentCardContentTop - optimalTop) > 20) {
         window.scrollTo({
           top: targetScrollY,
           behavior: 'smooth',
@@ -153,19 +110,8 @@ export default function Home() {
     cardContentRef.current = cardContentElement
     
     // Trigger scroll calculation
-    scrollToShowInputAndResult()
-  }, [scrollToShowInputAndResult])
-
-  // Watch for conversion result appearance and ensure it's visible
-  useEffect(() => {
-    // Only on small screens
-    if (window.innerWidth >= 640) return
-
-    // When conversion result appears (convertedAmount changes from null to a value)
-    if (conversionData.convertedAmount !== null && !conversionData.error) {
-      scrollToShowInputAndResult()
-    }
-  }, [conversionData.convertedAmount, conversionData.error, scrollToShowInputAndResult])
+    scrollToShowInput()
+  }, [scrollToShowInput])
 
   return (
     <main>
@@ -207,15 +153,6 @@ export default function Home() {
                 selectedAssetChain={selectedAssetChain}
                 onConversionChange={setConversionData} 
                 onInputFocus={handleInputFocus} 
-              />
-              
-              {/* Conversion result */}
-              <ConversionResult
-                ref={conversionResultRef}
-                convertedAmount={conversionData.convertedAmount}
-                currencyMode={conversionData.currencyMode}
-                inputValue={conversionData.inputValue}
-                error={conversionData.error}
               />
             </section>
           </section>

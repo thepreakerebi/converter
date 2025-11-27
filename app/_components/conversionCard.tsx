@@ -20,14 +20,15 @@ import {
 } from '@/components/ui/tooltip'
 import Image from 'next/image'
 import {
-  fetchBitcoinPrice,
-  usdToWbtc,
-  wbtcToUsd,
+  fetchTokenPrice,
+  usdToToken,
+  tokenToUsd,
   formatUsd,
   validateUsdInput,
   validateWbtcInput,
   parseInputValue,
 } from '@/lib/conversion'
+import { ConversionResult } from './conversionResult'
 // Removed wbtcContractConfig import - now using selected asset-chain
 
 const WBTC_ICON_URL =
@@ -71,7 +72,7 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('USD')
   const [inputValue, setInputValue] = useState('')
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null)
-  const [btcPrice, setBtcPrice] = useState<number | null>(null)
+  const [tokenPrice, setTokenPrice] = useState<number | null>(null)
   const [isLoadingPrice, setIsLoadingPrice] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [inputError, setInputError] = useState<string | null>(null)
@@ -80,17 +81,36 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
   // Contract metadata is now read from selectedAssetChain config
   // No need for on-chain contract reads for metadata
 
-  // Fetch BTC price on mount and when switching modes
+  // Fetch token price based on selected asset's CoinGecko ID
   useEffect(() => {
     const loadPrice = async () => {
+      if (!selectedAsset?.coingeckoId) {
+        // Default to wrapped-bitcoin if no asset selected
+        setIsLoadingPrice(true)
+        setError(null)
+        try {
+          const price = await fetchTokenPrice('wrapped-bitcoin')
+          setTokenPrice(price)
+        } catch (err) {
+          setError(
+            err instanceof Error ? err.message : 'Failed to fetch token price. Please try again.'
+          )
+        } finally {
+          setIsLoadingPrice(false)
+        }
+        return
+      }
+
       setIsLoadingPrice(true)
       setError(null)
       try {
-        const price = await fetchBitcoinPrice()
-        setBtcPrice(price)
+        const price = await fetchTokenPrice(selectedAsset.coingeckoId)
+        setTokenPrice(price)
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : 'Failed to fetch Bitcoin price. Please try again.'
+          err instanceof Error 
+            ? err.message 
+            : `Failed to fetch ${assetSymbol} price. Please try again.`
         )
       } finally {
         setIsLoadingPrice(false)
@@ -98,12 +118,12 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
     }
 
     loadPrice()
-  }, [])
+  }, [selectedAsset?.coingeckoId, assetSymbol])
 
   // Real-time conversion as user types
   useEffect(() => {
-    // Only convert if we have valid input, BTC price, and no input errors
-    if (!inputValue || inputValue === '.' || inputError || !btcPrice) {
+    // Only convert if we have valid input, token price, and no input errors
+    if (!inputValue || inputValue === '.' || inputError || !tokenPrice) {
       setConvertedAmount(null)
       // Notify parent of conversion state change
       onConversionChange?.({
@@ -130,11 +150,11 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
     try {
       let result: number | null = null
       if (currencyMode === 'USD') {
-        const wbtcAmount = usdToWbtc(amount, btcPrice)
-        setConvertedAmount(wbtcAmount)
-        result = wbtcAmount
+        const tokenAmount = usdToToken(amount, tokenPrice)
+        setConvertedAmount(tokenAmount)
+        result = tokenAmount
       } else {
-        const usdAmount = wbtcToUsd(amount, btcPrice)
+        const usdAmount = tokenToUsd(amount, tokenPrice)
         setConvertedAmount(usdAmount)
         result = usdAmount
       }
@@ -156,7 +176,7 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
         error: null,
       })
     }
-  }, [inputValue, btcPrice, currencyMode, inputError, onConversionChange])
+  }, [inputValue, tokenPrice, currencyMode, inputError, onConversionChange])
 
   // Notify parent when error changes
   useEffect(() => {
@@ -402,6 +422,16 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
             )}
           </section>
 
+          {/* Conversion result */}
+          <ConversionResult
+            convertedAmount={convertedAmount}
+            currencyMode={currencyMode}
+            inputValue={inputValue}
+            error={error}
+            assetSymbol={assetSymbol}
+            assetDecimals={selectedAsset?.decimals ?? 8}
+          />
+
           {/* Convert button - Commented out: Real-time conversion makes button redundant */}
           {/* <Button
             type="button"
@@ -430,10 +460,10 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
         )}
 
         {/* Price display */}
-        {btcPrice && !isLoadingPrice && selectedAsset && (
+        {tokenPrice && !isLoadingPrice && selectedAsset && (
           <section className="text-left">
             <p className="text-sm text-muted-foreground">
-              1 {assetSymbol} ≈ <span className="font-medium">{formatUsd(btcPrice)}</span>
+              1 {assetSymbol} ≈ <span className="font-medium">{formatUsd(tokenPrice)}</span>
             </p>
           </section>
         )}
