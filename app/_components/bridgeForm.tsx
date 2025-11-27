@@ -2,7 +2,7 @@
 
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useAccount, usePublicClient } from 'wagmi'
+import { useAccount, usePublicClient, useReadContract } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,7 +15,9 @@ import { supportedChains } from '@/lib/wagmi.config'
 import { useMemo, useState, useEffect } from 'react'
 import type { BridgeState } from '@/lib/bridge-state-machine'
 import { BridgeProgress } from './bridgeProgress'
-import { isAddress } from 'viem'
+import { isAddress, formatUnits } from 'viem'
+import { erc20Abi } from 'viem'
+import { useWalletStatus } from '@/hooks/useWalletStatus'
 
 /**
  * BridgeForm Component
@@ -44,8 +46,11 @@ export function BridgeForm({
   onBridgeSuccess 
 }: BridgeFormProps) {
   const { address } = useAccount()
+  const { isConnected, chainId } = useWalletStatus()
   const [contractAddressError, setContractAddressError] = useState<string | null>(null)
   const [isCheckingAddress, setIsCheckingAddress] = useState(false)
+  // Insufficient balance validation commented out - not a requirement in Phase 2 assessment
+  // const [insufficientBalanceError, setInsufficientBalanceError] = useState<string | null>(null)
 
   // Get all available destination chains (exclude source chain)
   const availableDestinationChains = useMemo(() => {
@@ -66,17 +71,61 @@ export function BridgeForm({
       destinationChain: availableDestinationChains[0]?.id ?? 1,
       asset: selectedAssetChain?.assetId ?? 'wbtc',
       amount: '',
-      recipientAddress: address ?? '',
+      recipientAddress: '', // Don't pre-fill recipient address
     },
   })
 
   // Watch form values for dynamic updates
   const destinationChain = watch('destinationChain')
   const recipientAddress = watch('recipientAddress')
+  // Amount watching commented out - insufficient balance validation not required
+  // const amount = watch('amount')
   
   // Get public client for the destination chain
   // usePublicClient returns undefined if chainId is not configured in wagmi
   const publicClient = usePublicClient({ chainId: destinationChain })
+  
+  // Get balance for selected asset on source chain (where tokens are being bridged from)
+  const sourceChainId = selectedAssetChain?.chainId
+  const contractAddress = selectedAssetChain
+    ? (selectedAssetChain.asset.chains[sourceChainId ?? 0]?.address as `0x${string}` | undefined)
+    : undefined
+  const assetDecimals = selectedAssetChain
+    ? selectedAssetChain.asset.chains[sourceChainId ?? 0]?.decimals
+    : undefined
+
+  // Determine if we should read balance (connected, on correct chain, asset available on chain)
+  const shouldReadBalance =
+    isConnected &&
+    !!selectedAssetChain &&
+    !!address &&
+    chainId === sourceChainId &&
+    sourceChainId !== undefined &&
+    sourceChainId in selectedAssetChain.asset.chains &&
+    !!contractAddress
+
+  // Read balance for selected asset on source chain
+  const { data: balanceRaw, isLoading: isLoadingBalance } = useReadContract({
+    address: contractAddress,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: {
+      enabled: shouldReadBalance && !!contractAddress && !!address,
+    },
+  })
+
+  // Format balance
+  const balance = useMemo(() => {
+    if (balanceRaw === undefined || assetDecimals === undefined) return null
+    return Number(formatUnits(balanceRaw, assetDecimals))
+  }, [balanceRaw, assetDecimals])
+
+  const formattedBalance = useMemo(() => {
+    if (balance === null) return '...'
+    if (balance === 0) return '0'
+    return balance.toFixed(6).replace(/\.?0+$/, '')
+  }, [balance])
   
   // Debug: Log when public client is not available
   useEffect(() => {
@@ -167,12 +216,24 @@ export function BridgeForm({
     }
   }, [selectedAssetChain, setValue, destinationChain, availableDestinationChains])
 
-  // Update recipient address when wallet connects
-  useMemo(() => {
-    if (address && !watch('recipientAddress')) {
-      setValue('recipientAddress', address)
-    }
-  }, [address, setValue, watch])
+  // Insufficient balance validation commented out - not a requirement in Phase 2 assessment
+  // The assessment only requires showing balances, not validating them
+  // useEffect(() => {
+  //   setInsufficientBalanceError(null)
+  //   
+  //   if (!amount || !balance || balance === null) {
+  //     return
+  //   }
+
+  //   const amountNum = parseFloat(amount)
+  //   if (isNaN(amountNum) || amountNum <= 0) {
+  //     return
+  //   }
+
+  //   if (amountNum > balance) {
+  //     setInsufficientBalanceError(`Insufficient balance. You have ${formattedBalance} ${selectedAssetChain?.asset.symbol ?? 'tokens'}, but trying to bridge ${amountNum}.`)
+  //   }
+  // }, [amount, balance, formattedBalance, selectedAssetChain])
 
   const onFormSubmit = async (data: BridgeFormData) => {
     // Block submission if contract address error exists
@@ -180,6 +241,12 @@ export function BridgeForm({
       console.error('Form submission blocked: Contract address detected')
       return
     }
+    
+    // Insufficient balance validation commented out - not a requirement in Phase 2 assessment
+    // if (insufficientBalanceError) {
+    //   console.error('Form submission blocked: Insufficient balance')
+    //   return
+    // }
     
     // Additional check: if we're still checking, wait a bit
     if (isCheckingAddress) {
@@ -203,9 +270,11 @@ export function BridgeForm({
     onReset()
     // Reset amount and recipient address fields
     setValue('amount', '')
-    setValue('recipientAddress', address ?? '')
-    // Clear contract address error
+    setValue('recipientAddress', '') // Don't pre-fill recipient address
+    // Clear errors
     setContractAddressError(null)
+    // Insufficient balance validation commented out - not a requirement in Phase 2 assessment
+    // setInsufficientBalanceError(null)
   }
 
   // Get asset symbol
@@ -271,9 +340,16 @@ export function BridgeForm({
 
       {/* Amount */}
       <section className="space-y-2">
-        <Label htmlFor="bridge-amount">
-          Amount ({assetSymbol}) <span className="text-destructive">*</span>
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="bridge-amount">
+            Amount ({assetSymbol}) <span className="text-destructive">*</span>
+          </Label>
+          {isConnected && selectedAssetChain && chainId === sourceChainId && (
+            <span className="text-xs text-muted-foreground">
+              Balance: {isLoadingBalance ? '...' : `${formattedBalance} ${assetSymbol}`}
+            </span>
+          )}
+        </div>
         <Input
           id="bridge-amount"
           type="text"
@@ -288,6 +364,10 @@ export function BridgeForm({
         {errors.amount && (
           <p className="text-xs text-destructive">{errors.amount.message}</p>
         )}
+        {/* Insufficient balance validation commented out - not a requirement in Phase 2 assessment */}
+        {/* {insufficientBalanceError && (
+          <p className="text-xs text-destructive">{insufficientBalanceError}</p>
+        )} */}
       </section>
 
       {/* Recipient Address */}
@@ -336,6 +416,14 @@ export function BridgeForm({
           <AlertDescription>{contractAddressError}</AlertDescription>
         </Alert>
       )}
+
+      {/* Insufficient Balance Error Alert - commented out - not a requirement in Phase 2 assessment */}
+      {/* {insufficientBalanceError && (
+        <Alert variant="destructive">
+          <AlertCircle className="size-4" aria-hidden="true" />
+          <AlertDescription>{insufficientBalanceError}</AlertDescription>
+        </Alert>
+      )} */}
 
       {/* Estimated Fees and Time (mocked) */}
       <Alert>

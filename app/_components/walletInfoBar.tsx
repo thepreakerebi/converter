@@ -174,10 +174,7 @@ export function WalletInfoBar({ selectedAssetChain, onAssetChainChange }: Wallet
           {/* Right side: Network status (when connected) or Asset-Chain selector + Connector selector (when not connected) */}
           {isConnected ? (
             <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-              <AssetChainSelector
-                value={selectedAssetChain ? createAssetChainKey(selectedAssetChain.assetId, selectedAssetChain.chainId) : undefined}
-                onValueChange={(value, combination) => onAssetChainChange?.(combination ?? null)}
-              />
+              {/* AssetChainSelector removed when connected - only show when not connected */}
               <ChainStatusBadge />
             </section>
           ) : (

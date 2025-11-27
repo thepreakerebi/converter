@@ -59,21 +59,59 @@ export default function Home() {
   }, [isConnected, selectedAssetChain, chainId])
 
   // State to control alert visibility (auto-dismiss after 10s or on disconnect)
-  const [alertDismissed, setAlertDismissed] = useState(false)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [unsupportedNetworkAlertDismissed, setUnsupportedNetworkAlertDismissed] = useState(false)
+  const [mismatchAlertDismissed, setMismatchAlertDismissed] = useState(false)
+  const unsupportedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const mismatchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const mismatchKeyRef = useRef<string>('')
 
-  // Derive whether to show alert: show if mismatch exists, connected, and not dismissed
-  const shouldShowAlert = useMemo(() => {
-    return !!(assetChainMismatch && isConnected && !alertDismissed)
-  }, [assetChainMismatch, isConnected, alertDismissed])
+  // Determine which alert to show (prioritize unsupported network)
+  const shouldShowUnsupportedAlert = useMemo(() => {
+    return !!(isConnected && !isSupportedChain && unsupportedNetworkName && !unsupportedNetworkAlertDismissed)
+  }, [isConnected, isSupportedChain, unsupportedNetworkName, unsupportedNetworkAlertDismissed])
 
-  // Handle auto-dismiss timeout and reset dismissed state when mismatch changes
+  const shouldShowMismatchAlert = useMemo(() => {
+    // Only show mismatch alert if unsupported network alert is not showing
+    return !!(assetChainMismatch && isConnected && !mismatchAlertDismissed && !shouldShowUnsupportedAlert)
+  }, [assetChainMismatch, isConnected, mismatchAlertDismissed, shouldShowUnsupportedAlert])
+
+  // Handle auto-dismiss timeout for unsupported network alert
   useEffect(() => {
     // Clear any existing timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
+    if (unsupportedTimeoutRef.current) {
+      clearTimeout(unsupportedTimeoutRef.current)
+      unsupportedTimeoutRef.current = null
+    }
+
+    // If disconnected or no unsupported network, reset dismissed state
+    if (!isConnected || !unsupportedNetworkName || isSupportedChain) {
+      setTimeout(() => {
+        setUnsupportedNetworkAlertDismissed(false)
+      }, 0)
+      return
+    }
+
+    // Auto-dismiss after 10 seconds
+    unsupportedTimeoutRef.current = setTimeout(() => {
+      setUnsupportedNetworkAlertDismissed(true)
+      unsupportedTimeoutRef.current = null
+    }, 10000)
+
+    // Cleanup timeout on unmount or dependency change
+    return () => {
+      if (unsupportedTimeoutRef.current) {
+        clearTimeout(unsupportedTimeoutRef.current)
+        unsupportedTimeoutRef.current = null
+      }
+    }
+  }, [isConnected, isSupportedChain, unsupportedNetworkName])
+
+  // Handle auto-dismiss timeout for mismatch alert
+  useEffect(() => {
+    // Clear any existing timeout
+    if (mismatchTimeoutRef.current) {
+      clearTimeout(mismatchTimeoutRef.current)
+      mismatchTimeoutRef.current = null
     }
 
     // Create a unique key for this mismatch
@@ -82,10 +120,9 @@ export default function Home() {
       : ''
 
     // Reset dismissed state when mismatch changes (new mismatch = show alert again)
-    // Use setTimeout to avoid React Compiler warning about synchronous setState
     if (currentMismatchKey !== mismatchKeyRef.current) {
       setTimeout(() => {
-        setAlertDismissed(false)
+        setMismatchAlertDismissed(false)
       }, 0)
       mismatchKeyRef.current = currentMismatchKey
     }
@@ -93,22 +130,22 @@ export default function Home() {
     // If disconnected or no mismatch, reset dismissed state
     if (!isConnected || !assetChainMismatch) {
       setTimeout(() => {
-        setAlertDismissed(false)
+        setMismatchAlertDismissed(false)
       }, 0)
       return
     }
 
     // Auto-dismiss after 10 seconds
-    timeoutRef.current = setTimeout(() => {
-      setAlertDismissed(true)
-      timeoutRef.current = null
+    mismatchTimeoutRef.current = setTimeout(() => {
+      setMismatchAlertDismissed(true)
+      mismatchTimeoutRef.current = null
     }, 10000)
 
     // Cleanup timeout on unmount or dependency change
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-        timeoutRef.current = null
+      if (mismatchTimeoutRef.current) {
+        clearTimeout(mismatchTimeoutRef.current)
+        mismatchTimeoutRef.current = null
       }
     }
   }, [assetChainMismatch, isConnected])
@@ -159,22 +196,21 @@ export default function Home() {
       <section className={`min-h-screen ${isConnected ? 'pt-28' : 'pt-32 md:pt-24'}`}>
         <section className="container mx-auto px-4 py-8">
           <section className="max-w-4xl mx-auto space-y-8">
-            {/* Unsupported network alert */}
-            {isConnected && !isSupportedChain && unsupportedNetworkName && (
+            {/* Show only one alert: prioritize unsupported network, then asset-chain mismatch */}
+            {shouldShowUnsupportedAlert && unsupportedNetworkName && (
               <Alert variant="destructive" className="max-w-md mx-auto">
                 <AlertCircle className="size-4" aria-hidden="true" />
                 <AlertDescription>
-                  {`${unsupportedNetworkName} is not supported. Please switch to a supported network (Ethereum Mainnet, Sepolia, Polygon, or Arbitrum) to interact with assets.`}
+                  {`${unsupportedNetworkName} is not supported. Switch to Ethereum Mainnet, Sepolia, Polygon, or Arbitrum.`}
                 </AlertDescription>
               </Alert>
             )}
 
-            {/* Asset-chain mismatch alert */}
-            {shouldShowAlert && assetChainMismatch && (
+            {shouldShowMismatchAlert && assetChainMismatch && (
               <Alert variant="destructive" className="max-w-md mx-auto">
                 <AlertCircle className="size-4" aria-hidden="true" />
                 <AlertDescription>
-                  {`You selected ${assetChainMismatch.selectedAsset} on ${assetChainMismatch.selectedChain}, but your wallet is connected to ${assetChainMismatch.connectedChain}. Please switch your wallet to ${assetChainMismatch.selectedChain} or select a different asset-chain combination.`}
+                  {`Switch wallet to ${assetChainMismatch.selectedChain} or select a different asset-chain.`}
                 </AlertDescription>
               </Alert>
             )}
