@@ -1,6 +1,5 @@
 'use client'
 
-import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, AlertCircle, Loader2, RefreshCw } from 'lucide-react'
@@ -18,35 +17,14 @@ export interface BridgeProgressProps {
 }
 
 export function BridgeProgress({ state, onRetry, onReset }: BridgeProgressProps) {
-  // Calculate progress percentage based on state
-  const getProgress = (): number => {
-    switch (state.status) {
-      case 'idle':
-        return 0
-      case 'validating':
-        return 10
-      case 'submitting':
-        return 30
-      case 'pending':
-        return 60
-      case 'confirmed':
-        return 100
-      case 'failed':
-        return 0
-      case 'retrying':
-        return 30
-      default:
-        return 0
-    }
-  }
-
   // Get status message
   const getStatusMessage = (): { message: string; icon: React.ReactNode; variant: 'default' | 'destructive' } => {
     switch (state.status) {
       case 'idle':
+        // Don't show alert for idle state
         return {
-          message: 'Ready to bridge',
-          icon: <CheckCircle2 className="size-4" aria-hidden="true" />,
+          message: '',
+          icon: null,
           variant: 'default' as const,
         }
       case 'validating':
@@ -94,7 +72,6 @@ export function BridgeProgress({ state, onRetry, onReset }: BridgeProgressProps)
     }
   }
 
-  const progress = getProgress()
   const statusInfo = getStatusMessage()
 
   // Get transaction ID if available
@@ -102,59 +79,53 @@ export function BridgeProgress({ state, onRetry, onReset }: BridgeProgressProps)
 
   return (
     <section className="space-y-4" aria-label="Bridge transaction progress">
-      {/* Progress Bar */}
-      <section className="space-y-2">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Progress</span>
-          <span className="font-medium">{progress}%</span>
-        </div>
-        <Progress value={progress} className="h-2" aria-label={`Bridge progress: ${progress}%`} />
-      </section>
-
-      {/* Status Alert */}
-      <Alert variant={statusInfo.variant}>
-        <div className="flex items-start gap-3">
-          {statusInfo.icon}
-          <div className="flex-1 space-y-1">
-            <AlertDescription className="font-medium">{statusInfo.message}</AlertDescription>
-            {transactionId && (
-              <p className="text-xs text-muted-foreground font-mono">
-                Transaction ID: {transactionId.slice(0, 10)}...{transactionId.slice(-8)}
-              </p>
-            )}
-            {state.status === 'failed' && state.error && (
-              <p className="text-xs text-muted-foreground mt-1">{state.error}</p>
-            )}
+      {/* Status Alert - Only show when not idle */}
+      {state.status !== 'idle' && (
+        <Alert variant={statusInfo.variant}>
+          <div className="flex items-start gap-3">
+            {statusInfo.icon}
+            <div className="flex-1">
+              <AlertDescription className="font-medium whitespace-nowrap">{statusInfo.message}</AlertDescription>
+              {transactionId && (
+                <p className="text-xs text-muted-foreground font-mono whitespace-nowrap mt-1">
+                  Transaction ID: {transactionId.slice(0, 10)}...{transactionId.slice(-8)}
+                </p>
+              )}
+              {state.status === 'failed' && state.error && (
+                <p className="text-xs text-muted-foreground mt-1">{state.error}</p>
+              )}
+            </div>
           </div>
-        </div>
-      </Alert>
+        </Alert>
+      )}
 
       {/* Enhanced Stepper Visualization */}
       <section className="space-y-4 py-4">
         <h3 className="text-sm font-medium text-muted-foreground">Transaction Status</h3>
         <div className="relative">
           {/* Stepper Steps */}
-          <div className="flex items-start justify-between">
+          <div className="flex items-start">
             {/* Step 1: Validating */}
             <div className="flex flex-col items-center gap-2 flex-1 relative">
               <div className="relative z-10">
                 <div
                   className={`flex items-center justify-center size-10 rounded-full border-2 transition-all ${
-                    state.status === 'validating'
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : state.status === 'submitting' ||
-                        state.status === 'pending' ||
-                        state.status === 'confirmed'
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-muted bg-background text-muted-foreground'
+                    state.status === 'validating' ||
+                    state.status === 'submitting' ||
+                    state.status === 'retrying' ||
+                    state.status === 'pending' ||
+                    state.status === 'confirmed'
+                      ? 'border-primary bg-primary text-primary-foreground shadow-md'
+                      : 'border-border bg-muted/80 text-muted-foreground'
                   }`}
                 >
-                  {state.status === 'submitting' ||
-                  state.status === 'pending' ||
-                  state.status === 'confirmed' ? (
-                    <CheckCircle2 className="size-5" aria-hidden="true" />
-                  ) : state.status === 'validating' ? (
+                  {state.status === 'validating' ? (
                     <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+                  ) : state.status === 'submitting' ||
+                    state.status === 'retrying' ||
+                    state.status === 'pending' ||
+                    state.status === 'confirmed' ? (
+                    <CheckCircle2 className="size-5" aria-hidden="true" />
                   ) : (
                     <span className="text-xs font-semibold">1</span>
                   )}
@@ -164,44 +135,46 @@ export function BridgeProgress({ state, onRetry, onReset }: BridgeProgressProps)
                 className={`text-xs font-medium text-center ${
                   state.status === 'validating' ||
                   state.status === 'submitting' ||
+                  state.status === 'retrying' ||
                   state.status === 'pending' ||
                   state.status === 'confirmed'
-                    ? 'text-foreground'
+                    ? 'text-foreground font-semibold'
                     : 'text-muted-foreground'
                 }`}
               >
                 Validating
               </span>
+              {/* Connecting Line 1 - from right edge of circle to next circle */}
+              <div
+                className={`absolute top-5 left-[calc(50%+1.25rem)] right-[calc(-50%+1.25rem)] h-1 transition-all ${
+                  state.status === 'submitting' ||
+                  state.status === 'retrying' ||
+                  state.status === 'pending' ||
+                  state.status === 'confirmed'
+                    ? 'bg-primary'
+                    : 'bg-muted/60'
+                }`}
+                aria-hidden="true"
+              />
             </div>
-
-            {/* Connecting Line 1 */}
-            <div
-              className={`absolute top-5 left-[25%] right-[25%] h-0.5 transition-all ${
-                state.status === 'submitting' ||
-                state.status === 'pending' ||
-                state.status === 'confirmed'
-                  ? 'bg-primary'
-                  : 'bg-muted'
-              }`}
-              aria-hidden="true"
-            />
 
             {/* Step 2: Submitting */}
             <div className="flex flex-col items-center gap-2 flex-1 relative">
               <div className="relative z-10">
                 <div
                   className={`flex items-center justify-center size-10 rounded-full border-2 transition-all ${
-                    state.status === 'submitting' || state.status === 'retrying'
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : state.status === 'pending' || state.status === 'confirmed'
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-muted bg-background text-muted-foreground'
+                    state.status === 'submitting' ||
+                    state.status === 'retrying' ||
+                    state.status === 'pending' ||
+                    state.status === 'confirmed'
+                      ? 'border-primary bg-primary text-primary-foreground shadow-md'
+                      : 'border-border bg-muted/80 text-muted-foreground'
                   }`}
                 >
-                  {state.status === 'pending' || state.status === 'confirmed' ? (
-                    <CheckCircle2 className="size-5" aria-hidden="true" />
-                  ) : state.status === 'submitting' || state.status === 'retrying' ? (
+                  {state.status === 'submitting' || state.status === 'retrying' ? (
                     <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+                  ) : state.status === 'pending' || state.status === 'confirmed' ? (
+                    <CheckCircle2 className="size-5" aria-hidden="true" />
                   ) : (
                     <span className="text-xs font-semibold">2</span>
                   )}
@@ -213,40 +186,37 @@ export function BridgeProgress({ state, onRetry, onReset }: BridgeProgressProps)
                   state.status === 'retrying' ||
                   state.status === 'pending' ||
                   state.status === 'confirmed'
-                    ? 'text-foreground'
+                    ? 'text-foreground font-semibold'
                     : 'text-muted-foreground'
                 }`}
               >
                 Submitting
               </span>
+              {/* Connecting Line 2 - from right edge of circle to next circle */}
+              <div
+                className={`absolute top-5 left-[calc(50%+1.25rem)] right-[calc(-50%+1.25rem)] h-1 transition-all ${
+                  state.status === 'pending' || state.status === 'confirmed'
+                    ? 'bg-primary'
+                    : 'bg-muted/60'
+                }`}
+                aria-hidden="true"
+              />
             </div>
-
-            {/* Connecting Line 2 */}
-            <div
-              className={`absolute top-5 left-[50%] right-[25%] h-0.5 transition-all ${
-                state.status === 'pending' || state.status === 'confirmed'
-                  ? 'bg-primary'
-                  : 'bg-muted'
-              }`}
-              aria-hidden="true"
-            />
 
             {/* Step 3: Pending */}
             <div className="flex flex-col items-center gap-2 flex-1 relative">
               <div className="relative z-10">
                 <div
                   className={`flex items-center justify-center size-10 rounded-full border-2 transition-all ${
-                    state.status === 'pending'
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : state.status === 'confirmed'
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-muted bg-background text-muted-foreground'
+                    state.status === 'pending' || state.status === 'confirmed'
+                      ? 'border-primary bg-primary text-primary-foreground shadow-md'
+                      : 'border-border bg-muted/80 text-muted-foreground'
                   }`}
                 >
-                  {state.status === 'confirmed' ? (
-                    <CheckCircle2 className="size-5" aria-hidden="true" />
-                  ) : state.status === 'pending' ? (
+                  {state.status === 'pending' ? (
                     <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+                  ) : state.status === 'confirmed' ? (
+                    <CheckCircle2 className="size-5" aria-hidden="true" />
                   ) : (
                     <span className="text-xs font-semibold">3</span>
                   )}
@@ -255,21 +225,20 @@ export function BridgeProgress({ state, onRetry, onReset }: BridgeProgressProps)
               <span
                 className={`text-xs font-medium text-center ${
                   state.status === 'pending' || state.status === 'confirmed'
-                    ? 'text-foreground'
+                    ? 'text-foreground font-semibold'
                     : 'text-muted-foreground'
                 }`}
               >
                 Pending
               </span>
+              {/* Connecting Line 3 - from right edge of circle to next circle */}
+              <div
+                className={`absolute top-5 left-[calc(50%+1.25rem)] right-[calc(-50%+1.25rem)] h-1 transition-all ${
+                  state.status === 'confirmed' ? 'bg-primary' : 'bg-muted/60'
+                }`}
+                aria-hidden="true"
+              />
             </div>
-
-            {/* Connecting Line 3 */}
-            <div
-              className={`absolute top-5 left-[75%] right-[25%] h-0.5 transition-all ${
-                state.status === 'confirmed' ? 'bg-primary' : 'bg-muted'
-              }`}
-              aria-hidden="true"
-            />
 
             {/* Step 4: Confirmed */}
             <div className="flex flex-col items-center gap-2 flex-1 relative">
@@ -277,8 +246,8 @@ export function BridgeProgress({ state, onRetry, onReset }: BridgeProgressProps)
                 <div
                   className={`flex items-center justify-center size-10 rounded-full border-2 transition-all ${
                     state.status === 'confirmed'
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-muted bg-background text-muted-foreground'
+                      ? 'border-primary bg-primary text-primary-foreground shadow-md'
+                      : 'border-border bg-muted/80 text-muted-foreground'
                   }`}
                 >
                   {state.status === 'confirmed' ? (
@@ -290,7 +259,7 @@ export function BridgeProgress({ state, onRetry, onReset }: BridgeProgressProps)
               </div>
               <span
                 className={`text-xs font-medium text-center ${
-                  state.status === 'confirmed' ? 'text-foreground' : 'text-muted-foreground'
+                  state.status === 'confirmed' ? 'text-foreground font-semibold' : 'text-muted-foreground'
                 }`}
               >
                 Confirmed
@@ -317,7 +286,7 @@ export function BridgeProgress({ state, onRetry, onReset }: BridgeProgressProps)
       {state.status === 'confirmed' && onReset && (
         <Button
           type="button"
-          variant="outline"
+          variant="default"
           onClick={onReset}
           className="w-full h-12 md:h-9"
           aria-label="Start new bridge transaction"

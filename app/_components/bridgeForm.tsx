@@ -10,10 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
 import { bridgeFormSchema, type BridgeFormData } from '@/lib/bridge-schema'
-import { useBridgeTransaction } from '@/hooks/useBridgeTransaction'
 import type { AssetChainCombination } from '@/lib/assets-config'
 import { supportedChains } from '@/lib/wagmi.config'
 import { useMemo } from 'react'
+import type { BridgeState } from '@/lib/bridge-state-machine'
+import { BridgeProgress } from './bridgeProgress'
 
 /**
  * BridgeForm Component
@@ -22,12 +23,26 @@ import { useMemo } from 'react'
  */
 export interface BridgeFormProps {
   selectedAssetChain: AssetChainCombination | null
+  bridgeState: BridgeState
+  isSubmitting: boolean
+  bridgeError: string | null
+  onSubmit: (data: BridgeFormData) => Promise<void>
+  onReset: () => void
+  onRetry?: () => Promise<void>
   onBridgeSuccess?: () => void
 }
 
-export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormProps) {
+export function BridgeForm({ 
+  selectedAssetChain, 
+  bridgeState,
+  isSubmitting,
+  bridgeError,
+  onSubmit,
+  onReset,
+  onRetry,
+  onBridgeSuccess 
+}: BridgeFormProps) {
   const { address } = useAccount()
-  const { state, submitTransaction, isSubmitting, resetTransaction, error: bridgeError } = useBridgeTransaction()
 
   // Get all available destination chains (exclude source chain)
   const availableDestinationChains = useMemo(() => {
@@ -80,16 +95,16 @@ export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormPr
     }
   }, [address, setValue, watch])
 
-  const onSubmit = async (data: BridgeFormData) => {
-    await submitTransaction(data)
-    if (state.status === 'confirmed') {
+  const onFormSubmit = async (data: BridgeFormData) => {
+    await onSubmit(data)
+    if (bridgeState.status === 'confirmed') {
       onBridgeSuccess?.()
     }
   }
 
   // Handle reset - clears form fields and transaction state
   const handleReset = () => {
-    resetTransaction()
+    onReset()
     // Reset amount and recipient address fields
     setValue('amount', '')
     setValue('recipientAddress', address ?? '')
@@ -99,7 +114,7 @@ export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormPr
   const assetSymbol = selectedAssetChain?.asset.symbol ?? 'Token'
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
       {/* Source Chain (read-only, from selected asset-chain) */}
       <section className="space-y-2">
         <Label htmlFor="source-chain">Source Chain</Label>
@@ -214,37 +229,40 @@ export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormPr
       <Alert>
         <AlertCircle className="size-4" aria-hidden="true" />
         <AlertDescription className="text-xs">
-          <strong>Estimated Fees:</strong> ~$2-5 USD
-          <br />
-          <strong>Estimated Arrival Time:</strong> 5-15 minutes
-          <br />
-          <span className="text-muted-foreground">These are mock estimates. Actual fees and times may vary.</span>
+          <div className="space-y-1">
+            <p className="whitespace-nowrap">
+              <strong>Estimated Fees:</strong> ~$2-5 USD
+            </p>
+            <p className="whitespace-nowrap">
+              <strong>Estimated Arrival Time:</strong> 5-15 minutes
+            </p>
+            <p className="text-muted-foreground">
+              These are mock estimates. Actual fees and times may vary.
+            </p>
+          </div>
         </AlertDescription>
       </Alert>
 
-      {/* Submit Button */}
-      <section className="flex gap-2">
-        <Button
-          type="submit"
-          disabled={isSubmitting || !selectedAssetChain || state.status === 'confirmed'}
-          className="flex-1 h-12 md:h-9"
-          aria-label="Submit bridge transaction"
-        >
-          {isSubmitting ? 'Processing...' : state.status === 'confirmed' ? 'Transaction Confirmed' : 'Bridge Tokens'}
-        </Button>
-        {state.status !== 'idle' && (
+      {/* Stepper - Show when transaction is in progress (replaces submit button) */}
+      {bridgeState.status !== 'idle' ? (
+        <BridgeProgress 
+          state={bridgeState}
+          onRetry={onRetry}
+          onReset={handleReset}
+        />
+      ) : (
+        /* Submit Button - Show when idle (hidden when transaction starts) */
+        <section className="flex gap-2">
           <Button
-            type="button"
-            variant="outline"
-            onClick={handleReset}
-            disabled={isSubmitting}
-            className="h-12 md:h-9"
-            aria-label={state.status === 'confirmed' ? 'Start new bridge transaction' : 'Reset bridge form'}
+            type="submit"
+            disabled={isSubmitting || !selectedAssetChain}
+            className="flex-1 h-12 md:h-9"
+            aria-label="Submit bridge transaction"
           >
-            {state.status === 'confirmed' ? 'Start New Bridge' : 'Reset'}
+            Bridge Tokens
           </Button>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* Validation Errors */}
       {Object.keys(errors).length > 0 && (

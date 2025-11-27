@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isAddress } from 'viem'
 
 /**
  * Bridge form validation schema
@@ -40,11 +41,25 @@ export const bridgeFormSchema = z.object({
     .min(1, 'Recipient address is required')
     .refine(
       (val) => {
-        // Basic Ethereum address validation (0x followed by 40 hex characters)
-        return /^0x[a-fA-F0-9]{40}$/.test(val)
+        // Use viem's isAddress for robust Ethereum address validation
+        // This validates format, checksum, and ensures it's a valid address
+        try {
+          return isAddress(val)
+        } catch {
+          return false
+        }
       },
       {
-        message: 'Recipient address must be a valid Ethereum address (0x...)',
+        message: 'Recipient address must be a valid Ethereum address (0x followed by 40 hexadecimal characters). Note: Contract addresses may not be able to receive tokens.',
+      }
+    )
+    .refine(
+      (val) => {
+        // Additional check: ensure it's not the zero address
+        return val.toLowerCase() !== '0x0000000000000000000000000000000000000000'
+      },
+      {
+        message: 'Recipient address cannot be the zero address',
       }
     ),
 })

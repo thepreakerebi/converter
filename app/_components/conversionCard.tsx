@@ -11,7 +11,6 @@ import { Spinner } from '@/components/ui/spinner'
 import { AlertCircle, ArrowLeftRight, DollarSign, X, ArrowRightLeft } from 'lucide-react'
 import type { AssetChainCombination } from '@/lib/assets-config'
 import { BridgeForm } from './bridgeForm'
-import { BridgeProgress } from './bridgeProgress'
 import { useBridgeTransaction } from '@/hooks/useBridgeTransaction'
 import {
   Tooltip,
@@ -56,8 +55,15 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
   const isConnected = connections.length > 0
   const chainId = useChainId()
   
-  // Bridge transaction state
-  const { state: bridgeState, retryTransaction, resetTransaction } = useBridgeTransaction()
+  // Bridge transaction state - lifted to card level so BridgeForm and BridgeProgress share state
+  const { 
+    state: bridgeState, 
+    submitTransaction, 
+    retryTransaction, 
+    resetTransaction, 
+    isSubmitting,
+    error: bridgeError 
+  } = useBridgeTransaction()
   const [showBridgeForm, setShowBridgeForm] = useState(false)
 
   // Get selected asset info or default to wBTC
@@ -548,24 +554,21 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
           </section>
 
           {showBridgeForm && (
-            <section className="space-y-4">
-              <BridgeForm 
-                selectedAssetChain={selectedAssetChain ?? null}
-                onBridgeSuccess={() => {
-                  // Optionally handle success
-                }}
-              />
-              {bridgeState.status !== 'idle' && (
-                <BridgeProgress 
-                  state={bridgeState}
-                  onRetry={retryTransaction}
-                  onReset={() => {
-                    resetTransaction()
-                    setShowBridgeForm(false)
-                  }}
-                />
-              )}
-            </section>
+            <BridgeForm 
+              selectedAssetChain={selectedAssetChain ?? null}
+              bridgeState={bridgeState}
+              isSubmitting={isSubmitting}
+              bridgeError={bridgeError}
+              onSubmit={submitTransaction}
+              onRetry={retryTransaction}
+              onReset={() => {
+                resetTransaction()
+                // Reset form fields will be handled by BridgeForm's handleReset
+              }}
+              onBridgeSuccess={() => {
+                // Optionally handle success
+              }}
+            />
           )}
         </section>
       </CardContent>
