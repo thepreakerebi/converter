@@ -106,7 +106,7 @@ export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormPr
           id="source-chain"
           value={selectedAssetChain ? `${selectedAssetChain.chain.name} (${assetSymbol})` : 'Select asset-chain first'}
           disabled
-          className="bg-muted"
+          className="h-12 md:h-9 bg-muted"
           aria-label="Source chain (read-only)"
         />
         <p className="text-xs text-muted-foreground">
@@ -124,7 +124,7 @@ export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormPr
           onValueChange={(value) => setValue('destinationChain', Number(value))}
           disabled={isSubmitting || !selectedAssetChain}
         >
-          <SelectTrigger id="destination-chain" aria-label="Select destination chain">
+          <SelectTrigger id="destination-chain" aria-label="Select destination chain" className="h-12 md:h-9">
             <SelectValue placeholder="Select destination chain" />
           </SelectTrigger>
           <SelectContent>
@@ -147,7 +147,7 @@ export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormPr
           id="asset"
           value={selectedAssetChain ? `${selectedAssetChain.asset.symbol} (${selectedAssetChain.asset.name})` : 'Select asset-chain first'}
           disabled
-          className="bg-muted"
+          className="h-12 md:h-9 bg-muted"
           aria-label="Asset (read-only)"
         />
         <p className="text-xs text-muted-foreground">
@@ -167,6 +167,7 @@ export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormPr
           placeholder={`Enter amount in ${assetSymbol}`}
           {...register('amount')}
           disabled={isSubmitting || !selectedAssetChain}
+          className="h-12 md:h-9"
           aria-label={`Amount in ${assetSymbol}`}
           aria-invalid={!!errors.amount}
         />
@@ -186,6 +187,7 @@ export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormPr
           placeholder="0x..."
           {...register('recipientAddress')}
           disabled={isSubmitting}
+          className="h-12 md:h-9"
           aria-label="Recipient wallet address"
           aria-invalid={!!errors.recipientAddress}
         />
@@ -216,7 +218,7 @@ export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormPr
         <Button
           type="submit"
           disabled={isSubmitting || !selectedAssetChain || state.status === 'confirmed'}
-          className="flex-1"
+          className="flex-1 h-12 md:h-9"
           aria-label="Submit bridge transaction"
         >
           {isSubmitting ? 'Processing...' : state.status === 'confirmed' ? 'Transaction Confirmed' : 'Bridge Tokens'}
@@ -227,6 +229,7 @@ export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormPr
             variant="outline"
             onClick={resetTransaction}
             disabled={isSubmitting}
+            className="h-12 md:h-9"
             aria-label="Reset bridge form"
           >
             Reset

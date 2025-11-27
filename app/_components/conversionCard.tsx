@@ -496,7 +496,7 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
             <Button
               type="button"
               variant={showBridgeForm ? 'outline' : 'default'}
-              size="sm"
+              className="h-12 md:h-9"
               onClick={() => {
                 setShowBridgeForm(!showBridgeForm)
                 if (showBridgeForm) {

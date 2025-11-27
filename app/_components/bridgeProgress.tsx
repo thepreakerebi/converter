@@ -160,7 +160,7 @@ export function BridgeProgress({ state, onRetry, onReset }: BridgeProgressProps)
           type="button"
           variant="outline"
           onClick={onRetry}
-          className="w-full"
+          className="w-full h-12 md:h-9"
           aria-label="Retry bridge transaction"
         >
           <RefreshCw className="size-4 mr-2" aria-hidden="true" />
@@ -173,7 +173,7 @@ export function BridgeProgress({ state, onRetry, onReset }: BridgeProgressProps)
           type="button"
           variant="outline"
           onClick={onReset}
-          className="w-full"
+          className="w-full h-12 md:h-9"
           aria-label="Start new bridge transaction"
         >
           Start New Bridge
