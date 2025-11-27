@@ -17,9 +17,11 @@
  * Matches the schema defined in bridge-schema.ts
  */
 export interface BridgeFormData {
+  sourceChain: number
+  destinationChain: number
   asset: string
-  chain: number
   amount: string
+  recipientAddress: string
 }
 
 /**

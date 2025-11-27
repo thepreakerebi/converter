@@ -35,17 +35,29 @@ export function AssetChainSelector({
   // Get all valid asset-chain combinations
   const combinations = useMemo(() => getAllAssetChainCombinations(), [])
 
-  // Load saved preference on mount
+  // Load saved preference on mount, or use default if no value provided
   useEffect(() => {
+    if (value) {
+      // Value prop provided, use it
+      return
+    }
+
     const saved = loadAssetChainPreference()
-    if (saved && !value) {
-      // Only use saved preference if no value prop is provided
+    if (saved) {
+      // Use saved preference
       setSavedPreference(saved)
-      // Parse and validate saved preference
       const parsed = parseAssetChainKey(saved)
       if (parsed && combinations.some((c) => c.assetId === parsed.assetId && c.chainId === parsed.chainId)) {
         const found = combinations.find((c) => c.assetId === parsed.assetId && c.chainId === parsed.chainId) ?? null
         onValueChange?.(saved, found)
+      }
+    } else {
+      // No saved preference, use default: wBTC on Ethereum Mainnet
+      const defaultCombination = combinations.find((c) => c.assetId === 'wbtc' && c.chainId === 1)
+      if (defaultCombination) {
+        const defaultKey = createAssetChainKey(defaultCombination.assetId, defaultCombination.chainId)
+        setSavedPreference(defaultKey)
+        onValueChange?.(defaultKey, defaultCombination)
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

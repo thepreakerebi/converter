@@ -2,15 +2,17 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useConnections, useChainId } from 'wagmi'
-import { mainnet } from 'wagmi/chains'
-import { useReadContract } from 'wagmi'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Spinner } from '@/components/ui/spinner'
-import { AlertCircle, ArrowLeftRight, Bitcoin, DollarSign, X } from 'lucide-react'
+import { AlertCircle, ArrowLeftRight, Bitcoin, DollarSign, X, ArrowRightLeft } from 'lucide-react'
+import type { AssetChainCombination } from '@/lib/assets-config'
+import { BridgeForm } from './bridgeForm'
+import { BridgeProgress } from './bridgeProgress'
+import { useBridgeTransaction } from '@/hooks/useBridgeTransaction'
 import {
   Tooltip,
   TooltipContent,
@@ -26,7 +28,7 @@ import {
   validateWbtcInput,
   parseInputValue,
 } from '@/lib/conversion'
-import { wbtcContractConfig, WBTC_FUNCTIONS } from '@/lib/wbtc-contract'
+// Removed wbtcContractConfig import - now using selected asset-chain
 
 const WBTC_ICON_URL =
   'https://assets.coingecko.com/coins/images/7598/standard/wrapped_bitcoin_wbtc.png?1696507857'
@@ -34,6 +36,7 @@ const WBTC_ICON_URL =
 type CurrencyMode = 'USD' | 'WBTC'
 
 interface ConversionCardProps {
+  selectedAssetChain?: AssetChainCombination | null
   onConversionChange?: (data: {
     convertedAmount: number | null
     currencyMode: CurrencyMode
@@ -45,19 +48,25 @@ interface ConversionCardProps {
 
 /**
  * ConversionCard Component
- * Main conversion interface for USD <-> wBTC conversion
+ * Main conversion interface for USD <-> Multi-Asset conversion
+ * Includes bridge transaction functionality
  */
-export function ConversionCard({ onConversionChange, onInputFocus }: ConversionCardProps = {}) {
+export function ConversionCard({ selectedAssetChain, onConversionChange, onInputFocus }: ConversionCardProps = {}) {
   const inputRef = useRef<HTMLInputElement>(null)
   const cardContentRef = useRef<HTMLDivElement>(null)
   const connections = useConnections()
   const isConnected = connections.length > 0
   const chainId = useChainId()
-  // Check if chain is Ethereum Mainnet
-  // If chainId is undefined, it might be a non-EVM chain (like Solana) that wagmi doesn't support
-  const isMainnet = chainId === mainnet.id
-  // Show error if connected but not on mainnet, or if chainId is undefined (non-EVM chain)
-  const isWrongNetwork = isConnected && (!isMainnet || chainId === undefined)
+  
+  // Bridge transaction state
+  const { state: bridgeState, retryTransaction, resetTransaction } = useBridgeTransaction()
+  const [showBridgeForm, setShowBridgeForm] = useState(false)
+
+  // Get selected asset info or default to wBTC
+  const selectedAsset = selectedAssetChain?.asset ?? null
+  const assetSymbol = selectedAsset?.symbol ?? 'wBTC'
+  const assetName = selectedAsset?.name ?? 'Wrapped Bitcoin'
+  const assetIcon = selectedAsset?.icon ?? WBTC_ICON_URL
 
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('USD')
   const [inputValue, setInputValue] = useState('')
@@ -68,22 +77,8 @@ export function ConversionCard({ onConversionChange, onInputFocus }: ConversionC
   const [inputError, setInputError] = useState<string | null>(null)
   // const [isConverting, setIsConverting] = useState(false) // Not needed with real-time conversion
 
-  // Read wBTC contract metadata
-  const { data: wbtcSymbol, isLoading: isLoadingSymbol } = useReadContract({
-    ...wbtcContractConfig,
-    functionName: WBTC_FUNCTIONS.symbol,
-    query: {
-      enabled: isConnected && isMainnet,
-    },
-  })
-
-  const { data: wbtcDecimals, isLoading: isLoadingDecimals } = useReadContract({
-    ...wbtcContractConfig,
-    functionName: WBTC_FUNCTIONS.decimals,
-    query: {
-      enabled: isConnected && isMainnet,
-    },
-  })
+  // Contract metadata is now read from selectedAssetChain config
+  // No need for on-chain contract reads for metadata
 
   // Fetch BTC price on mount and when switching modes
   useEffect(() => {
@@ -287,18 +282,19 @@ export function ConversionCard({ onConversionChange, onInputFocus }: ConversionC
   //     ? 'Enter amount in USD (max 2 decimals)'
   //     : 'Enter amount in wBTC (max 8 decimals)'
 
-  // Get decimal hint
+  // Get decimal hint based on selected asset
+  const assetDecimals = selectedAsset?.decimals ?? 8
   const decimalHint =
     currencyMode === 'USD'
       ? 'Maximum 2 decimal places'
-      : 'Maximum 8 decimal places'
+      : `Maximum ${assetDecimals} decimal places`
 
-  // Dynamic title and description based on currency mode
-  const cardTitle = `Convert to ${currencyMode === 'USD' ? 'wBTC' : 'USD'}`
+  // Dynamic title and description based on currency mode and selected asset
+  const cardTitle = `Convert to ${currencyMode === 'USD' ? assetSymbol : 'USD'}`
   const cardDescription =
     currencyMode === 'USD'
-      ? 'Enter USD amount to convert to Wrapped Bitcoin (wBTC) using real-time market prices'
-      : 'Enter wBTC amount to convert to USD using real-time market prices'
+      ? `Enter USD amount to convert to ${assetName} (${assetSymbol}) using real-time market prices`
+      : `Enter ${assetSymbol} amount to convert to USD using real-time market prices`
 
   return (
     <Card className="w-full max-w-xl mx-auto border-none shadow-none bg-zinc-50">
@@ -359,14 +355,14 @@ export function ConversionCard({ onConversionChange, onInputFocus }: ConversionC
                     <DollarSign className="size-4 text-foreground" />
                   </section>
                 )}
-                {currencyMode === 'WBTC' && (
+                {currencyMode !== 'USD' && selectedAsset && (
                   <section
                     className="absolute right-3 top-1/2 -translate-y-1/2"
                     aria-hidden="true"
                   >
                     <Image
-                      src={WBTC_ICON_URL}
-                      alt="wBTC icon"
+                      src={assetIcon}
+                      alt={`${assetSymbol} icon`}
                       width={24}
                       height={24}
                       className="rounded-full"
@@ -434,10 +430,10 @@ export function ConversionCard({ onConversionChange, onInputFocus }: ConversionC
         )}
 
         {/* Price display */}
-        {btcPrice && !isLoadingPrice && (
+        {btcPrice && !isLoadingPrice && selectedAsset && (
           <section className="text-left">
             <p className="text-sm text-muted-foreground">
-              1 wBTC ≈ <span className="font-medium">{formatUsd(btcPrice)}</span>
+              1 {assetSymbol} ≈ <span className="font-medium">{formatUsd(btcPrice)}</span>
             </p>
           </section>
         )}
@@ -461,43 +457,23 @@ export function ConversionCard({ onConversionChange, onInputFocus }: ConversionC
           </Alert>
         )}
 
-        {isWrongNetwork && (
-          <Alert variant="destructive">
-            <AlertCircle className="size-4" aria-hidden="true" />
-            <AlertDescription>
-              {chainId === undefined
-                ? 'Unsupported network detected. Please switch to Ethereum Mainnet to interact with wBTC.'
-                : 'Please switch to Ethereum Mainnet to interact with wBTC.'}
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Network mismatch warning - handled at page level now */}
 
         {/* Contract metadata display */}
-        {isConnected && isMainnet && (
+        {isConnected && selectedAssetChain && selectedAsset && chainId === selectedAssetChain.chainId && (
           <section className="text-xs text-muted-foreground space-y-1">
             {currencyMode === 'USD' ? (
-              // Show wBTC contract info when converting TO wBTC
+              // Show selected asset contract info when converting TO asset
               <>
-                {(wbtcSymbol || wbtcDecimals) && (
-                  <>
-                    <p>
-                      Token Symbol:{' '}
-                      {isLoadingSymbol ? (
-                        <Spinner className="inline size-3" aria-hidden="true" />
-                      ) : (
-                        <span className="font-mono font-medium">{wbtcSymbol || 'N/A'}</span>
-                      )}
-                    </p>
-                    <p>
-                      Decimals:{' '}
-                      {isLoadingDecimals ? (
-                        <Spinner className="inline size-3" aria-hidden="true" />
-                      ) : (
-                        <span className="font-mono font-medium">{wbtcDecimals?.toString() || 'N/A'}</span>
-                      )}
-                    </p>
-                  </>
-                )}
+                <p>
+                  Token Symbol: <span className="font-mono font-medium">{selectedAsset.symbol}</span>
+                </p>
+                <p>
+                  Decimals: <span className="font-mono font-medium">{selectedAsset.decimals}</span>
+                </p>
+                <p>
+                  Chain: <span className="font-mono font-medium">{selectedAssetChain.chain.name}</span>
+                </p>
               </>
             ) : (
               // Show USD info when converting TO USD
@@ -512,6 +488,49 @@ export function ConversionCard({ onConversionChange, onInputFocus }: ConversionC
             )}
           </section>
         )}
+
+        {/* Bridge Transaction Section */}
+        <section className="space-y-4 border-t pt-4">
+          <section className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Bridge Transaction</h3>
+            <Button
+              type="button"
+              variant={showBridgeForm ? 'outline' : 'default'}
+              size="sm"
+              onClick={() => {
+                setShowBridgeForm(!showBridgeForm)
+                if (showBridgeForm) {
+                  resetTransaction()
+                }
+              }}
+              aria-label={showBridgeForm ? 'Hide bridge form' : 'Show bridge form'}
+            >
+              <ArrowRightLeft className="size-4 mr-2" aria-hidden="true" />
+              {showBridgeForm ? 'Hide Bridge' : 'Bridge Tokens'}
+            </Button>
+          </section>
+
+          {showBridgeForm && (
+            <section className="space-y-4">
+              <BridgeForm 
+                selectedAssetChain={selectedAssetChain ?? null}
+                onBridgeSuccess={() => {
+                  // Optionally handle success
+                }}
+              />
+              {bridgeState.status !== 'idle' && (
+                <BridgeProgress 
+                  state={bridgeState}
+                  onRetry={retryTransaction}
+                  onReset={() => {
+                    resetTransaction()
+                    setShowBridgeForm(false)
+                  }}
+                />
+              )}
+            </section>
+          )}
+        </section>
       </CardContent>
     </Card>
   )

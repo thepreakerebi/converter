@@ -11,6 +11,8 @@ import { ConversionResult } from './_components/conversionResult'
 import { useWalletStatus } from '@/hooks/useWalletStatus'
 import { chains } from '@/lib/wagmi.config'
 import type { AssetChainCombination } from '@/lib/assets-config'
+import { getAllAssetChainCombinations } from '@/lib/assets-config'
+import { mainnet } from 'wagmi/chains'
 
 type CurrencyMode = 'USD' | 'WBTC'
 
@@ -35,7 +37,13 @@ export default function Home() {
   const { chainId, isSupportedChain } = useWalletStatus()
 
   // Selected asset-chain combination state (lifted to page level for sharing)
-  const [selectedAssetChain, setSelectedAssetChain] = useState<AssetChainCombination | null>(null)
+  // Default to wBTC on Ethereum Mainnet
+  const defaultAssetChain = useMemo(() => {
+    const combinations = getAllAssetChainCombinations()
+    return combinations.find((c) => c.assetId === 'wbtc' && c.chainId === mainnet.id) ?? null
+  }, [])
+
+  const [selectedAssetChain, setSelectedAssetChain] = useState<AssetChainCombination | null>(defaultAssetChain)
 
   // Get network name for unsupported chains
   const unsupportedNetworkName = useMemo(() => {
@@ -195,7 +203,11 @@ export default function Home() {
 
             {/* Conversion card */}
             <section className="space-y-4" aria-label="Currency conversion interface" ref={conversionSectionRef}>
-              <ConversionCard onConversionChange={setConversionData} onInputFocus={handleInputFocus} />
+              <ConversionCard 
+                selectedAssetChain={selectedAssetChain}
+                onConversionChange={setConversionData} 
+                onInputFocus={handleInputFocus} 
+              />
               
               {/* Conversion result */}
               <ConversionResult
