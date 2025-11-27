@@ -1,9 +1,10 @@
-# wBTC Converter
+# Multi-Asset Converter & Bridge
 
-A modern, responsive single-page React application built with Next.js and TypeScript for converting between USD and Wrapped Bitcoin (wBTC) tokens on Ethereum Mainnet. The application demonstrates strong React/TypeScript fundamentals, asynchronous operations, error handling, and foundational Web3 concepts.
+A modern, responsive single-page React application built with Next.js and TypeScript for converting between USD and multiple ERC-20 tokens across EVM chains, with simulated bridge transaction capabilities. The application demonstrates strong React/TypeScript fundamentals, asynchronous operations, error handling, Web3 concepts, state management, and production-grade UX patterns.
 
 ## Features
 
+### Phase 1 (Core Conversion)
 - **Real-time Currency Conversion**: Convert between USD and wBTC using live Bitcoin prices from CoinGecko API
 - **Wallet Integration**: Connect with MetaMask, WalletConnect, or other injected wallets using wagmi v3
 - **Network Awareness**: Automatic detection and warnings for incorrect blockchain networks
@@ -13,6 +14,17 @@ A modern, responsive single-page React application built with Next.js and TypeSc
 - **Accessibility**: Semantic HTML, ARIA labels, keyboard navigation, and proper contrast ratios
 - **Error Handling**: Comprehensive error messages for API failures, network issues, and invalid inputs
 - **wBTC Balance Display**: View your wBTC balance when connected to Ethereum Mainnet
+
+### Phase 2 (Network Resilience & Multi-Asset)
+- **Network Resilience UX**: Multi-connector support (MetaMask, WalletConnect) with connector selector and chain status badges
+- **Multi-Chain Support**: Support for Ethereum Mainnet, Sepolia Testnet, Polygon, and Arbitrum with unsupported chain detection
+- **Connector Persistence**: Automatic restoration of connector and chain preferences using localStorage
+- **Simulated Bridge Transactions**: Mock bridge transaction flow with progress stepper, retry mechanism, and state machine
+- **Multi-Asset Support**: Convert between USD and multiple ERC-20 tokens (wBTC, USDC, DAI) across different EVM chains
+- **Asset-Chain Selection**: Combined asset and chain selector for flexible token selection
+- **Price Caching**: TanStack Query-based caching for token prices with 1-minute stale time
+- **Token Balance Display**: Real-time token balance display for connected wallets
+- **Contract Address Detection**: Validation to prevent sending to contract addresses instead of wallet addresses
 
 ## Prerequisites
 
@@ -226,7 +238,15 @@ converter/
 │   ├── _components/             # App-specific components
 │   │   ├── conversionCard.tsx   # Main conversion interface
 │   │   ├── conversionResult.tsx # Conversion result display
-│   │   └── walletInfoBar.tsx    # Wallet connection header
+│   │   ├── walletInfoBar.tsx    # Wallet connection header
+│   │   ├── connectorSelector.tsx # Connector selection dropdown
+│   │   ├── chainStatusBadge.tsx # Chain status display
+│   │   ├── assetChainSelector.tsx # Asset-chain selection
+│   │   ├── bridgeForm.tsx       # Bridge transaction form
+│   │   └── bridgeProgress.tsx    # Bridge progress stepper
+│   ├── api/                     # API routes
+│   │   └── bridge/              # Bridge API endpoint
+│   │       └── route.ts         # Mock bridge transaction handler
 │   ├── layout.tsx               # Root layout with providers
 │   ├── page.tsx                 # Home page
 │   └── globals.css              # Global styles
@@ -238,8 +258,24 @@ converter/
 │   ├── conversion.ts           # Conversion logic & API calls
 │   ├── wagmi.config.ts         # Wagmi configuration
 │   ├── wbtc-contract.ts        # wBTC contract ABI & config
+│   ├── assets-config.ts        # Multi-asset metadata configuration
+│   ├── bridge-state-machine.ts  # Bridge transaction state machine
+│   ├── bridge-schema.ts        # Bridge form validation schema
+│   ├── storage.ts              # localStorage utilities
 │   └── utils.ts                # Utility functions
 ├── hooks/                       # Custom React hooks
+│   ├── useWalletStatus.ts      # Wallet status & chain detection
+│   ├── useTokenPrices.ts       # Token price fetching with caching
+│   └── useBridgeTransaction.ts # Bridge transaction state management
+├── docs/                        # Documentation
+│   ├── phase2-rationale.md     # Architecture & design decisions
+│   ├── bridge-state.md         # Bridge state machine diagram
+│   └── manual-tests.md         # Manual QA test cases
+├── __tests__/                   # Test files
+│   ├── hooks/                  # Hook tests
+│   ├── integration/            # Integration tests
+│   ├── components/             # Component tests
+│   └── mocks/                  # MSW handlers
 ├── public/                      # Static assets
 ├── vitest.config.ts            # Vitest configuration
 ├── vitest.setup.ts             # Vitest setup file
