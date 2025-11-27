@@ -3,7 +3,6 @@
 import { useReducer, useCallback } from 'react'
 import { bridgeReducer, type BridgeState } from '@/lib/bridge-state-machine'
 import { bridgeFormSchema, type BridgeFormData } from '@/lib/bridge-schema'
-import { toast } from 'sonner'
 import { ZodError } from 'zod'
 
 /**
@@ -16,14 +15,19 @@ export interface UseBridgeTransactionReturn {
   resetTransaction: () => void
   isSubmitting: boolean
   canRetry: boolean
+  error: string | null // Bridge transaction error (validation or API errors)
 }
 
 /**
  * Custom hook for managing bridge transaction state and API calls
  * Handles form validation, API calls, retry logic, and state management
+ * Errors are returned in state rather than shown via toast
  */
 export function useBridgeTransaction(): UseBridgeTransactionReturn {
   const [state, dispatch] = useReducer(bridgeReducer, { status: 'idle' })
+  
+  // Extract error message from state
+  const error = state.status === 'failed' || state.status === 'retrying' ? state.error : null
 
   /**
    * Submit bridge transaction
@@ -55,7 +59,6 @@ export function useBridgeTransaction(): UseBridgeTransactionReturn {
         // API returned error
         const errorMessage = result.error || 'Bridge transaction failed. Please try again.'
         dispatch({ type: 'API_ERROR', payload: errorMessage })
-        toast.error(errorMessage)
         return
       }
 
@@ -72,7 +75,6 @@ export function useBridgeTransaction(): UseBridgeTransactionReturn {
           type: 'API_SUCCESS', 
           payload: { transactionId: result.transactionId } 
         })
-        toast.success('Bridge transaction confirmed!')
       }, 2000)
 
     } catch (error) {
@@ -84,14 +86,12 @@ export function useBridgeTransaction(): UseBridgeTransactionReturn {
           ? `${firstIssue.path.join('.')}: ${firstIssue.message}`
           : 'Validation failed. Please check your input.'
         dispatch({ type: 'VALIDATE_ERROR', payload: errorMessage })
-        toast.error(errorMessage)
       } else {
         // Network or other error
         const errorMessage = error instanceof Error 
           ? error.message 
           : 'Bridge transaction failed. Please try again.'
         dispatch({ type: 'API_ERROR', payload: errorMessage })
-        toast.error(errorMessage)
       }
     }
   }, [])
@@ -137,6 +137,7 @@ export function useBridgeTransaction(): UseBridgeTransactionReturn {
     resetTransaction,
     isSubmitting,
     canRetry,
+    error,
   }
 }
 

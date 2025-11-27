@@ -129,27 +129,173 @@ export function BridgeProgress({ state, onRetry, onReset }: BridgeProgressProps)
         </div>
       </Alert>
 
-      {/* Stepper Visualization */}
-      <section className="space-y-2">
-        <div className="flex items-center gap-2 text-xs">
-          <div className={`flex items-center gap-1 ${state.status === 'validating' ? 'text-primary' : state.status === 'confirmed' || state.status === 'pending' || state.status === 'submitting' ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
-            <div className={`size-2 rounded-full ${state.status === 'validating' ? 'bg-primary' : 'bg-muted'}`} />
-            <span>Validating</span>
-          </div>
-          <div className="flex-1 h-px bg-muted" />
-          <div className={`flex items-center gap-1 ${state.status === 'submitting' ? 'text-primary' : state.status === 'pending' || state.status === 'confirmed' ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
-            <div className={`size-2 rounded-full ${state.status === 'submitting' || state.status === 'pending' || state.status === 'confirmed' ? 'bg-primary' : 'bg-muted'}`} />
-            <span>Submitting</span>
-          </div>
-          <div className="flex-1 h-px bg-muted" />
-          <div className={`flex items-center gap-1 ${state.status === 'pending' ? 'text-primary' : state.status === 'confirmed' ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
-            <div className={`size-2 rounded-full ${state.status === 'pending' || state.status === 'confirmed' ? 'bg-primary' : 'bg-muted'}`} />
-            <span>Pending</span>
-          </div>
-          <div className="flex-1 h-px bg-muted" />
-          <div className={`flex items-center gap-1 ${state.status === 'confirmed' ? 'text-primary' : 'text-muted-foreground'}`}>
-            <div className={`size-2 rounded-full ${state.status === 'confirmed' ? 'bg-primary' : 'bg-muted'}`} />
-            <span>Confirmed</span>
+      {/* Enhanced Stepper Visualization */}
+      <section className="space-y-4 py-4">
+        <h3 className="text-sm font-medium text-muted-foreground">Transaction Status</h3>
+        <div className="relative">
+          {/* Stepper Steps */}
+          <div className="flex items-start justify-between">
+            {/* Step 1: Validating */}
+            <div className="flex flex-col items-center gap-2 flex-1 relative">
+              <div className="relative z-10">
+                <div
+                  className={`flex items-center justify-center size-10 rounded-full border-2 transition-all ${
+                    state.status === 'validating'
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : state.status === 'submitting' ||
+                        state.status === 'pending' ||
+                        state.status === 'confirmed'
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-muted bg-background text-muted-foreground'
+                  }`}
+                >
+                  {state.status === 'submitting' ||
+                  state.status === 'pending' ||
+                  state.status === 'confirmed' ? (
+                    <CheckCircle2 className="size-5" aria-hidden="true" />
+                  ) : state.status === 'validating' ? (
+                    <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <span className="text-xs font-semibold">1</span>
+                  )}
+                </div>
+              </div>
+              <span
+                className={`text-xs font-medium text-center ${
+                  state.status === 'validating' ||
+                  state.status === 'submitting' ||
+                  state.status === 'pending' ||
+                  state.status === 'confirmed'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground'
+                }`}
+              >
+                Validating
+              </span>
+            </div>
+
+            {/* Connecting Line 1 */}
+            <div
+              className={`absolute top-5 left-[25%] right-[25%] h-0.5 transition-all ${
+                state.status === 'submitting' ||
+                state.status === 'pending' ||
+                state.status === 'confirmed'
+                  ? 'bg-primary'
+                  : 'bg-muted'
+              }`}
+              aria-hidden="true"
+            />
+
+            {/* Step 2: Submitting */}
+            <div className="flex flex-col items-center gap-2 flex-1 relative">
+              <div className="relative z-10">
+                <div
+                  className={`flex items-center justify-center size-10 rounded-full border-2 transition-all ${
+                    state.status === 'submitting' || state.status === 'retrying'
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : state.status === 'pending' || state.status === 'confirmed'
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-muted bg-background text-muted-foreground'
+                  }`}
+                >
+                  {state.status === 'pending' || state.status === 'confirmed' ? (
+                    <CheckCircle2 className="size-5" aria-hidden="true" />
+                  ) : state.status === 'submitting' || state.status === 'retrying' ? (
+                    <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <span className="text-xs font-semibold">2</span>
+                  )}
+                </div>
+              </div>
+              <span
+                className={`text-xs font-medium text-center ${
+                  state.status === 'submitting' ||
+                  state.status === 'retrying' ||
+                  state.status === 'pending' ||
+                  state.status === 'confirmed'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground'
+                }`}
+              >
+                Submitting
+              </span>
+            </div>
+
+            {/* Connecting Line 2 */}
+            <div
+              className={`absolute top-5 left-[50%] right-[25%] h-0.5 transition-all ${
+                state.status === 'pending' || state.status === 'confirmed'
+                  ? 'bg-primary'
+                  : 'bg-muted'
+              }`}
+              aria-hidden="true"
+            />
+
+            {/* Step 3: Pending */}
+            <div className="flex flex-col items-center gap-2 flex-1 relative">
+              <div className="relative z-10">
+                <div
+                  className={`flex items-center justify-center size-10 rounded-full border-2 transition-all ${
+                    state.status === 'pending'
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : state.status === 'confirmed'
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-muted bg-background text-muted-foreground'
+                  }`}
+                >
+                  {state.status === 'confirmed' ? (
+                    <CheckCircle2 className="size-5" aria-hidden="true" />
+                  ) : state.status === 'pending' ? (
+                    <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <span className="text-xs font-semibold">3</span>
+                  )}
+                </div>
+              </div>
+              <span
+                className={`text-xs font-medium text-center ${
+                  state.status === 'pending' || state.status === 'confirmed'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground'
+                }`}
+              >
+                Pending
+              </span>
+            </div>
+
+            {/* Connecting Line 3 */}
+            <div
+              className={`absolute top-5 left-[75%] right-[25%] h-0.5 transition-all ${
+                state.status === 'confirmed' ? 'bg-primary' : 'bg-muted'
+              }`}
+              aria-hidden="true"
+            />
+
+            {/* Step 4: Confirmed */}
+            <div className="flex flex-col items-center gap-2 flex-1 relative">
+              <div className="relative z-10">
+                <div
+                  className={`flex items-center justify-center size-10 rounded-full border-2 transition-all ${
+                    state.status === 'confirmed'
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-muted bg-background text-muted-foreground'
+                  }`}
+                >
+                  {state.status === 'confirmed' ? (
+                    <CheckCircle2 className="size-5" aria-hidden="true" />
+                  ) : (
+                    <span className="text-xs font-semibold">4</span>
+                  )}
+                </div>
+              </div>
+              <span
+                className={`text-xs font-medium text-center ${
+                  state.status === 'confirmed' ? 'text-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                Confirmed
+              </span>
+            </div>
           </div>
         </div>
       </section>

@@ -12,7 +12,6 @@ import { AlertCircle } from 'lucide-react'
 import { bridgeFormSchema, type BridgeFormData } from '@/lib/bridge-schema'
 import { useBridgeTransaction } from '@/hooks/useBridgeTransaction'
 import type { AssetChainCombination } from '@/lib/assets-config'
-import { getAllAssetChainCombinations } from '@/lib/assets-config'
 import { supportedChains } from '@/lib/wagmi.config'
 import { useMemo } from 'react'
 
@@ -28,7 +27,7 @@ export interface BridgeFormProps {
 
 export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormProps) {
   const { address } = useAccount()
-  const { state, submitTransaction, isSubmitting, resetTransaction } = useBridgeTransaction()
+  const { state, submitTransaction, isSubmitting, resetTransaction, error: bridgeError } = useBridgeTransaction()
 
   // Get all available destination chains (exclude source chain)
   const availableDestinationChains = useMemo(() => {
@@ -54,7 +53,6 @@ export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormPr
   })
 
   // Watch form values for dynamic updates
-  const sourceChain = watch('sourceChain')
   const destinationChain = watch('destinationChain')
 
   // Update form when selectedAssetChain changes
@@ -89,9 +87,12 @@ export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormPr
     }
   }
 
-  // Get chain name by ID
-  const getChainName = (chainId: number) => {
-    return supportedChains.find((chain) => chain.id === chainId)?.name ?? `Chain ${chainId}`
+  // Handle reset - clears form fields and transaction state
+  const handleReset = () => {
+    resetTransaction()
+    // Reset amount and recipient address fields
+    setValue('amount', '')
+    setValue('recipientAddress', address ?? '')
   }
 
   // Get asset symbol
@@ -201,6 +202,14 @@ export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormPr
         </p>
       </section>
 
+      {/* Bridge Transaction Errors */}
+      {bridgeError && (
+        <Alert variant="destructive">
+          <AlertCircle className="size-4" aria-hidden="true" />
+          <AlertDescription>{bridgeError}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Estimated Fees and Time (mocked) */}
       <Alert>
         <AlertCircle className="size-4" aria-hidden="true" />
@@ -223,16 +232,16 @@ export function BridgeForm({ selectedAssetChain, onBridgeSuccess }: BridgeFormPr
         >
           {isSubmitting ? 'Processing...' : state.status === 'confirmed' ? 'Transaction Confirmed' : 'Bridge Tokens'}
         </Button>
-        {state.status !== 'idle' && state.status !== 'confirmed' && (
+        {state.status !== 'idle' && (
           <Button
             type="button"
             variant="outline"
-            onClick={resetTransaction}
+            onClick={handleReset}
             disabled={isSubmitting}
             className="h-12 md:h-9"
-            aria-label="Reset bridge form"
+            aria-label={state.status === 'confirmed' ? 'Start new bridge transaction' : 'Reset bridge form'}
           >
-            Reset
+            {state.status === 'confirmed' ? 'Start New Bridge' : 'Reset'}
           </Button>
         )}
       </section>
