@@ -34,11 +34,14 @@ import { cookieStorage, createStorage } from 'wagmi'
 import { injected, metaMask, walletConnect } from '@wagmi/connectors'
 
 /**
- * Wagmi Configuration for Ethereum Mainnet and Sepolia Testnet
- * Configured for wBTC token interactions on Ethereum Mainnet
- * Supports multi-chain wallet connections
+ * Wagmi Configuration for Multi-Asset Support
+ * Configured for multiple ERC-20 tokens across EVM chains:
+ * - wBTC: Ethereum Mainnet, Sepolia
+ * - USDC: Ethereum Mainnet, Polygon
+ * - DAI: Ethereum Mainnet, Arbitrum
  * 
- * Note: Additional chains are included in wagmi's chains array to enable
+ * Supported chains (in supportedChains): Mainnet, Sepolia, Polygon, Arbitrum
+ * Additional chains are included in wagmi's chains array to enable
  * detection of unsupported networks, but are NOT included in supportedChains
  * array which determines app-level support. This allows the app to detect
  * and display proper error messages for any EVM-compatible chain.
@@ -89,9 +92,10 @@ export const chains = [
   celoAlfajores,
 ] as const
 
-// Supported chains for app-level functionality (only Mainnet and Sepolia)
+// Supported chains for app-level functionality
+// Includes chains where we have assets configured (wBTC, USDC, DAI)
 // This is what useWalletStatus uses to determine isSupportedChain
-export const supportedChains = [mainnet, sepolia] as const
+export const supportedChains = [mainnet, sepolia, polygon, arbitrum] as const
 
 // WalletConnect project ID (optional - can be set via env var)
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || ''

@@ -6,6 +6,7 @@
 const STORAGE_KEYS = {
   CONNECTOR: 'wagmi_connector_preference',
   CHAIN: 'wagmi_chain_preference',
+  ASSET_CHAIN: 'wagmi_asset_chain_preference',
 } as const
 
 /**
@@ -73,6 +74,35 @@ export function loadChainPreference(): number | null {
 }
 
 /**
+ * Save asset-chain preference to localStorage
+ * @param assetChainKey - The composite key to save (e.g., "wbtc-1")
+ */
+export function saveAssetChainPreference(assetChainKey: string): void {
+  if (typeof window === 'undefined') return
+
+  try {
+    localStorage.setItem(STORAGE_KEYS.ASSET_CHAIN, assetChainKey)
+  } catch (error) {
+    console.warn('Failed to save asset-chain preference:', error)
+  }
+}
+
+/**
+ * Load asset-chain preference from localStorage
+ * @returns The saved asset-chain key or null if not found
+ */
+export function loadAssetChainPreference(): string | null {
+  if (typeof window === 'undefined') return null
+
+  try {
+    return localStorage.getItem(STORAGE_KEYS.ASSET_CHAIN)
+  } catch (error) {
+    console.warn('Failed to load asset-chain preference:', error)
+    return null
+  }
+}
+
+/**
  * Clear all stored preferences
  */
 export function clearPreferences(): void {
@@ -81,6 +111,7 @@ export function clearPreferences(): void {
   try {
     localStorage.removeItem(STORAGE_KEYS.CONNECTOR)
     localStorage.removeItem(STORAGE_KEYS.CHAIN)
+    localStorage.removeItem(STORAGE_KEYS.ASSET_CHAIN)
   } catch (error) {
     console.warn('Failed to clear preferences:', error)
   }

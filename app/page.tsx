@@ -10,6 +10,7 @@ import { ConversionCard } from './_components/conversionCard'
 import { ConversionResult } from './_components/conversionResult'
 import { useWalletStatus } from '@/hooks/useWalletStatus'
 import { chains } from '@/lib/wagmi.config'
+import type { AssetChainCombination } from '@/lib/assets-config'
 
 type CurrencyMode = 'USD' | 'WBTC'
 
@@ -33,12 +34,31 @@ export default function Home() {
   const isConnected = connections.length > 0
   const { chainId, isSupportedChain } = useWalletStatus()
 
+  // Selected asset-chain combination state (lifted to page level for sharing)
+  const [selectedAssetChain, setSelectedAssetChain] = useState<AssetChainCombination | null>(null)
+
   // Get network name for unsupported chains
   const unsupportedNetworkName = useMemo(() => {
     if (!chainId || isSupportedChain) return null
     const detectedChain = chains.find((chain) => chain.id === chainId)
     return detectedChain?.name ?? 'This network'
   }, [chainId, isSupportedChain])
+
+  // Check if selected asset-chain matches connected chain
+  const assetChainMismatch = useMemo(() => {
+    if (!isConnected || !selectedAssetChain || !chainId) return null
+    
+    // Check if connected chain matches selected asset-chain
+    if (chainId !== selectedAssetChain.chainId) {
+      const connectedChain = chains.find((chain) => chain.id === chainId)
+      return {
+        selectedAsset: selectedAssetChain.asset.symbol,
+        selectedChain: selectedAssetChain.chain.name,
+        connectedChain: connectedChain?.name ?? 'Unknown Network',
+      }
+    }
+    return null
+  }, [isConnected, selectedAssetChain, chainId])
   const [conversionData, setConversionData] = useState<ConversionData>({
     convertedAmount: null,
     currencyMode: 'USD',
@@ -141,7 +161,7 @@ export default function Home() {
 
   return (
     <main>
-      <WalletInfoBar />
+      <WalletInfoBar selectedAssetChain={selectedAssetChain} onAssetChainChange={setSelectedAssetChain} />
       <section className={`min-h-screen ${isConnected ? 'pt-28' : 'pt-32 md:pt-24'}`}>
         <section className="container mx-auto px-4 py-8">
           <section className="max-w-4xl mx-auto space-y-8">
@@ -150,16 +170,26 @@ export default function Home() {
               <Alert variant="destructive" className="max-w-md mx-auto">
                 <AlertCircle className="size-4" aria-hidden="true" />
                 <AlertDescription>
-                  {`${unsupportedNetworkName} is not supported. Please switch to Ethereum Mainnet or Sepolia Testnet to interact with wBTC.`}
+                  {`${unsupportedNetworkName} is not supported. Please switch to a supported network (Ethereum Mainnet, Sepolia, Polygon, or Arbitrum) to interact with assets.`}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Asset-chain mismatch alert */}
+            {isConnected && assetChainMismatch && (
+              <Alert variant="destructive" className="max-w-md mx-auto">
+                <AlertCircle className="size-4" aria-hidden="true" />
+                <AlertDescription>
+                  {`You selected ${assetChainMismatch.selectedAsset} on ${assetChainMismatch.selectedChain}, but your wallet is connected to ${assetChainMismatch.connectedChain}. Please switch your wallet to ${assetChainMismatch.selectedChain} or select a different asset-chain combination.`}
                 </AlertDescription>
               </Alert>
             )}
 
             {/* Page header */}
             <header className="text-center space-y-2">
-              <h1 className="text-4xl font-bold tracking-tight">wBTC Converter</h1>
+              <h1 className="text-4xl font-bold tracking-tight">Multi-Asset Converter & Bridge</h1>
               <p className="text-lg text-muted-foreground">
-                Convert between USD and Wrapped Bitcoin (wBTC) on Ethereum Mainnet
+                Convert between USD and multiple ERC-20 tokens across EVM chains. Bridge assets seamlessly.
               </p>
             </header>
 

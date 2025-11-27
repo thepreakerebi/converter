@@ -456,7 +456,7 @@ export function ConversionCard({ onConversionChange, onInputFocus }: ConversionC
           <Alert>
             <AlertCircle className="size-4" aria-hidden="true" />
             <AlertDescription>
-              Connect your wallet to view on-chain wBTC contract details and your wBTC balance.
+              Connect your wallet to view on-chain contract details and your token balances.
             </AlertDescription>
           </Alert>
         )}
