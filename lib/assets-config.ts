@@ -48,7 +48,7 @@ export const ASSETS: Record<string, AssetMetadata> = {
     symbol: 'USDC',
     name: 'USD Coin',
     decimals: 6,
-    icon: 'https://assets.coingecko.com/coins/images/6319/standard/USD_Coin_icon.png?1696507857',
+    icon: 'https://assets.coingecko.com/coins/images/6319/standard/usdc.png?1696506694',
     coingeckoId: 'usd-coin',
     chains: {
       [mainnet.id]: {
@@ -66,7 +66,7 @@ export const ASSETS: Record<string, AssetMetadata> = {
     symbol: 'DAI',
     name: 'Dai Stablecoin',
     decimals: 18,
-    icon: 'https://assets.coingecko.com/coins/images/9956/standard/Badge_Dai.png?1696507857',
+    icon: 'https://assets.coingecko.com/coins/images/9956/standard/Badge_Dai.png?1696509996',
     coingeckoId: 'dai',
     chains: {
       [mainnet.id]: {

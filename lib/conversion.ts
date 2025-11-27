@@ -123,21 +123,30 @@ export function formatWbtc(amount: number): string {
 }
 
 /**
- * Validate USD input (max 2 decimal places)
+ * Validate token input with specified decimal places
+ * @param value - Input value to validate
+ * @param maxDecimals - Maximum number of decimal places allowed (default: 8)
+ * @returns True if input is valid
  */
-export function validateUsdInput(value: string): boolean {
+export function validateTokenInput(value: string, maxDecimals: number = 8): boolean {
   if (value === '' || value === '.') return true // Allow empty or just decimal point
-  const regex = /^\d+(\.\d{0,2})?$/
+  const regex = new RegExp(`^\\d+(\\.\\d{0,${maxDecimals}})?$`)
   return regex.test(value)
 }
 
 /**
+ * Validate USD input (max 2 decimal places)
+ */
+export function validateUsdInput(value: string): boolean {
+  return validateTokenInput(value, 2)
+}
+
+/**
  * Validate wBTC input (max 8 decimal places)
+ * @deprecated Use validateTokenInput(value, 8) instead
  */
 export function validateWbtcInput(value: string): boolean {
-  if (value === '' || value === '.') return true // Allow empty or just decimal point
-  const regex = /^\d+(\.\d{0,8})?$/
-  return regex.test(value)
+  return validateTokenInput(value, 8)
 }
 
 /**

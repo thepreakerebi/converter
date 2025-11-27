@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useState, useRef, useCallback, useMemo } from 'react'
 import { useConnections } from 'wagmi'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
@@ -13,7 +13,7 @@ import type { AssetChainCombination } from '@/lib/assets-config'
 import { getAllAssetChainCombinations } from '@/lib/assets-config'
 import { mainnet } from 'wagmi/chains'
 
-type CurrencyMode = 'USD' | 'WBTC'
+type CurrencyMode = 'USD' | 'TOKEN'
 
 interface ConversionData {
   convertedAmount: number | null

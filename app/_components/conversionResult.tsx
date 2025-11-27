@@ -2,7 +2,7 @@
 
 import { formatUsd, formatToken, parseInputValue } from '@/lib/conversion'
 
-type CurrencyMode = 'USD' | 'WBTC'
+type CurrencyMode = 'USD' | 'TOKEN'
 
 interface ConversionResultProps {
   convertedAmount: number | null

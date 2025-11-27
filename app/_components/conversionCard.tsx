@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Spinner } from '@/components/ui/spinner'
-import { AlertCircle, ArrowLeftRight, Bitcoin, DollarSign, X, ArrowRightLeft } from 'lucide-react'
+import { AlertCircle, ArrowLeftRight, DollarSign, X, ArrowRightLeft } from 'lucide-react'
 import type { AssetChainCombination } from '@/lib/assets-config'
 import { BridgeForm } from './bridgeForm'
 import { BridgeProgress } from './bridgeProgress'
@@ -25,16 +25,13 @@ import {
   tokenToUsd,
   formatUsd,
   validateUsdInput,
-  validateWbtcInput,
+  validateTokenInput,
   parseInputValue,
 } from '@/lib/conversion'
 import { ConversionResult } from './conversionResult'
 // Removed wbtcContractConfig import - now using selected asset-chain
 
-const WBTC_ICON_URL =
-  'https://assets.coingecko.com/coins/images/7598/standard/wrapped_bitcoin_wbtc.png?1696507857'
-
-type CurrencyMode = 'USD' | 'WBTC'
+type CurrencyMode = 'USD' | 'TOKEN'
 
 interface ConversionCardProps {
   selectedAssetChain?: AssetChainCombination | null
@@ -67,9 +64,14 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
   const selectedAsset = selectedAssetChain?.asset ?? null
   const assetSymbol = selectedAsset?.symbol ?? 'wBTC'
   const assetName = selectedAsset?.name ?? 'Wrapped Bitcoin'
-  const assetIcon = selectedAsset?.icon ?? WBTC_ICON_URL
+  const assetIcon = selectedAsset?.icon ?? 'https://assets.coingecko.com/coins/images/7598/standard/wrapped_bitcoin_wbtc.png?1696507857'
+  const assetDecimals = selectedAsset?.decimals ?? 8
 
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('USD')
+  
+  // Determine if we're converting TO token or FROM token
+  const isConvertingToToken = currencyMode === 'USD'
+  const isConvertingFromToken = currencyMode === 'TOKEN'
   const [inputValue, setInputValue] = useState('')
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null)
   const [tokenPrice, setTokenPrice] = useState<number | null>(null)
@@ -149,11 +151,13 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
 
     try {
       let result: number | null = null
-      if (currencyMode === 'USD') {
+      if (isConvertingToToken) {
+        // Converting USD to selected token
         const tokenAmount = usdToToken(amount, tokenPrice)
         setConvertedAmount(tokenAmount)
         result = tokenAmount
       } else {
+        // Converting selected token to USD
         const usdAmount = tokenToUsd(amount, tokenPrice)
         setConvertedAmount(usdAmount)
         result = usdAmount
@@ -176,7 +180,7 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
         error: null,
       })
     }
-  }, [inputValue, tokenPrice, currencyMode, inputError, onConversionChange])
+  }, [inputValue, tokenPrice, currencyMode, inputError, isConvertingToToken, onConversionChange])
 
   // Notify parent when error changes
   useEffect(() => {
@@ -196,13 +200,13 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
     // Remove any non-numeric characters except decimal point
     const cleaned = value.replace(/[^\d.]/g, '')
 
-    // Validate based on currency mode
+    // Validate based on currency mode and asset decimals
+    const maxDecimals = isConvertingToToken ? 2 : assetDecimals
     const isValid =
-      currencyMode === 'USD' ? validateUsdInput(cleaned) : validateWbtcInput(cleaned)
+      isConvertingToToken ? validateUsdInput(cleaned) : validateTokenInput(cleaned, assetDecimals)
 
     // Show error if invalid characters were entered
     if (hasInvalidChars) {
-      const maxDecimals = currencyMode === 'USD' ? 2 : 8
       setInputError(
         `Only numbers and decimal point allowed. Maximum ${maxDecimals} decimal place${maxDecimals > 1 ? 's' : ''}.`
       )
@@ -215,7 +219,6 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
       setError(null)
     } else if (cleaned !== '' && cleaned !== '.') {
       // Show error for invalid decimal format
-      const maxDecimals = currencyMode === 'USD' ? 2 : 8
       setInputError(
         `Invalid format. Please enter a number with up to ${maxDecimals} decimal place${maxDecimals > 1 ? 's' : ''}.`
       )
@@ -262,15 +265,15 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
 
   // Handle currency toggle
   const handleToggleCurrency = () => {
-    const newCurrencyMode = currencyMode === 'USD' ? 'WBTC' : 'USD'
+    const newCurrencyMode = currencyMode === 'USD' ? 'TOKEN' : 'USD'
     setCurrencyMode(newCurrencyMode)
     
     // If there's input value, keep it and let real-time conversion handle the conversion
     // Validate input for the new currency mode
     if (inputValue && inputValue !== '.') {
-      const isValid = newCurrencyMode === 'USD' ? validateUsdInput(inputValue) : validateWbtcInput(inputValue)
+      const maxDecimals = newCurrencyMode === 'USD' ? 2 : assetDecimals
+      const isValid = newCurrencyMode === 'USD' ? validateUsdInput(inputValue) : validateTokenInput(inputValue, assetDecimals)
       if (!isValid) {
-        const maxDecimals = newCurrencyMode === 'USD' ? 2 : 8
         setInputError(
           `Invalid format for ${newCurrencyMode}. Please enter a number with up to ${maxDecimals} decimal place${maxDecimals > 1 ? 's' : ''}.`
         )
@@ -300,19 +303,18 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
   // const placeholderText =
   //   currencyMode === 'USD'
   //     ? 'Enter amount in USD (max 2 decimals)'
-  //     : 'Enter amount in wBTC (max 8 decimals)'
+  //     : `Enter amount in ${assetSymbol} (max ${assetDecimals} decimals)`
 
   // Get decimal hint based on selected asset
-  const assetDecimals = selectedAsset?.decimals ?? 8
   const decimalHint =
     currencyMode === 'USD'
       ? 'Maximum 2 decimal places'
       : `Maximum ${assetDecimals} decimal places`
 
   // Dynamic title and description based on currency mode and selected asset
-  const cardTitle = `Convert to ${currencyMode === 'USD' ? assetSymbol : 'USD'}`
+  const cardTitle = `Convert to ${isConvertingToToken ? assetSymbol : 'USD'}`
   const cardDescription =
-    currencyMode === 'USD'
+    isConvertingToToken
       ? `Enter USD amount to convert to ${assetName} (${assetSymbol}) using real-time market prices`
       : `Enter ${assetSymbol} amount to convert to USD using real-time market prices`
 
@@ -320,11 +322,16 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
     <Card className="w-full max-w-xl mx-auto border-none shadow-none bg-zinc-50">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          {currencyMode === 'USD' ? (
-            <Bitcoin className="size-5" aria-hidden="true" />
+          {isConvertingToToken ? (
+            <Image
+              src={assetIcon}
+              alt={`${assetSymbol} icon`}
+              width={20}
+              height={20}
+              className="rounded-full"
+            />
           ) : (
             <DollarSign className="size-5" aria-hidden="true" />
-
           )}
           {cardTitle}
         </CardTitle>
@@ -335,7 +342,7 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
         <section className="space-y-5">
           <section className="space-y-2">
             <Label htmlFor="amount-input" className="flex flex-col items-start gap-2">
-              Amount ({currencyMode})
+              Amount ({isConvertingToToken ? 'USD' : assetSymbol})
               <span className="text-xs text-muted-foreground">({decimalHint})</span>
             </Label>
             <section className="flex flex-row items-center gap-3">
@@ -350,7 +357,7 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
                   onChange={(e) => handleInputChange(e.target.value)}
                   onFocus={() => onInputFocus?.(inputRef.current, cardContentRef.current)}
                   disabled={isInputDisabled}
-                  aria-label={`Enter amount in ${currencyMode}`}
+                  aria-label={`Enter amount in ${isConvertingToToken ? 'USD' : assetSymbol}`}
                   aria-describedby="decimal-hint"
                   className="h-12 md:h-9 pr-12 bg-white"
                 />
@@ -367,7 +374,7 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
                     <X className="size-3.5" aria-hidden="true" />
                   </Button>
                 )}
-                {currencyMode === 'USD' && (
+                {isConvertingToToken && (
                   <section
                     className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center size-6 rounded-full bg-muted border"
                     aria-hidden="true"
@@ -375,7 +382,7 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
                     <DollarSign className="size-4 text-foreground" />
                   </section>
                 )}
-                {currencyMode !== 'USD' && selectedAsset && (
+                {isConvertingFromToken && selectedAsset && (
                   <section
                     className="absolute right-3 top-1/2 -translate-y-1/2"
                     aria-hidden="true"
@@ -398,7 +405,7 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
                     type="button"
                     variant="outline"
                     onClick={handleToggleCurrency}
-                    aria-label={`Switch to ${currencyMode === 'USD' ? 'wBTC' : 'USD'} input mode`}
+                    aria-label={`Switch to ${isConvertingToToken ? assetSymbol : 'USD'} input mode`}
                     className="shrink-0 h-12 w-12 md:h-9 md:w-9 p-0"
                   >
                     <ArrowLeftRight className="size-4" aria-hidden="true" />
@@ -406,9 +413,9 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>
-                    {currencyMode === 'USD'
-                      ? 'Switch to wBTC input mode to convert to USD'
-                      : 'Switch to USD input mode to convert to wBTC'}
+                    {isConvertingToToken
+                      ? `Switch to ${assetSymbol} input mode to convert to USD`
+                      : `Switch to USD input mode to convert to ${assetSymbol}`}
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -492,7 +499,7 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
         {/* Contract metadata display */}
         {isConnected && selectedAssetChain && selectedAsset && chainId === selectedAssetChain.chainId && (
           <section className="text-xs text-muted-foreground space-y-1">
-            {currencyMode === 'USD' ? (
+            {isConvertingToToken ? (
               // Show selected asset contract info when converting TO asset
               <>
                 <p>
