@@ -217,8 +217,8 @@ export default function Home() {
 
             {/* Page header */}
             <header className="text-center space-y-2">
-              <h1 className="text-4xl font-bold tracking-tight">Multi-Asset Converter & Bridge</h1>
-              <p className="text-lg text-muted-foreground">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Multi-Asset Converter & Bridge</h1>
+              <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground">
                 Convert between USD and multiple ERC-20 tokens across EVM chains. Bridge assets seamlessly.
               </p>
             </header>

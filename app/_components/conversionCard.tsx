@@ -501,7 +501,12 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
         {/* Bridge Transaction Section */}
         <section className="space-y-4 border-t pt-4">
           <section className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <h3 className="text-lg font-semibold">Bridge Transaction</h3>
+            <section className="flex flex-col gap-1">
+              <h3 className="text-lg font-semibold">Bridge Transaction</h3>
+              <p className="text-sm text-muted-foreground">
+                Transfer your tokens seamlessly across different blockchain networks while maintaining their value and utility.
+              </p>
+            </section>
             <Button
               type="button"
               variant={showBridgeForm ? 'outline' : 'default'}
