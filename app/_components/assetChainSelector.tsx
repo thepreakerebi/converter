@@ -29,7 +29,7 @@ export function AssetChainSelector({
   disabled = false,
   className,
 }: AssetChainSelectorProps) {
-  const [selectKey, setSelectKey] = useState(0) // Key to force Select reset
+  const [selectKey] = useState(0) // Key to force Select reset
   const [savedPreference, setSavedPreference] = useState<string | null>(null)
 
   // Get all valid asset-chain combinations
