@@ -15,8 +15,7 @@ import { supportedChains } from '@/lib/wagmi.config'
 import { useMemo, useState, useEffect } from 'react'
 import type { BridgeState } from '@/lib/bridge-state-machine'
 import { BridgeProgress } from './bridgeProgress'
-import { isAddress, formatUnits } from 'viem'
-import { erc20Abi } from 'viem'
+import { isAddress, formatUnits, erc20Abi } from 'viem'
 import { useWalletStatus } from '@/hooks/useWalletStatus'
 
 /**

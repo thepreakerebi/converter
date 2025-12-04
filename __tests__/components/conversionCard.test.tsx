@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ConversionCard } from '../../app/_components/conversionCard'
 import * as conversionLib from '@/lib/conversion'
+import Image from 'next/image'
 
 // Mock wagmi hooks
 const mockUseConnections = vi.fn<() => Array<{ id: string }>>(() => [])
@@ -25,7 +26,7 @@ vi.mock('wagmi', async () => {
 // Mock next/image
 vi.mock('next/image', () => ({
   default: ({ src, alt }: { src: string; alt: string }) => (
-    <img src={src} alt={alt} />
+    <Image src={src} alt={alt} width={100} height={100} />
   ),
 }))
 
