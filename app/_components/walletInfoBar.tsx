@@ -5,14 +5,13 @@ import { useReadContract } from 'wagmi'
 import { Button } from '@/components/ui/button' // Still needed for Disconnect button
 import { Separator } from '@/components/ui/separator'
 import { Wallet } from 'lucide-react'
-import { formatUnits } from 'viem'
+import { formatUnits, erc20Abi } from 'viem'
 import { useWalletStatus } from '@/hooks/useWalletStatus'
 import { ConnectorSelector } from './connectorSelector'
 import { ChainStatusBadge } from './chainStatusBadge'
 import { AssetChainSelector } from './assetChainSelector'
 import type { AssetChainCombination } from '@/lib/assets-config'
 import { createAssetChainKey } from '@/lib/assets-config'
-import { erc20Abi } from 'viem'
 
 /**
  * WalletInfoBar Component
