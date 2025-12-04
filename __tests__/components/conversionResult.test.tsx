@@ -46,7 +46,7 @@ describe('ConversionResult', () => {
     render(
       <ConversionResult
         convertedAmount={50000}
-        currencyMode="WBTC"
+        currencyMode="TOKEN"
         inputValue="1"
         error={null}
       />
