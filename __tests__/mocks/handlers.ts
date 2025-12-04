@@ -39,7 +39,6 @@ export const coingeckoHandler = http.get(
   ({ request }) => {
     const url = new URL(request.url)
     const ids = url.searchParams.get('ids')
-    const vsCurrencies = url.searchParams.get('vs_currencies') || 'usd'
 
     // Parse asset IDs
     const assetIds = ids?.split(',') || []
