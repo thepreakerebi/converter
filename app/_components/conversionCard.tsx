@@ -26,6 +26,7 @@ import {
   validateUsdInput,
   validateTokenInput,
   parseInputValue,
+  normalizeNumericInput,
 } from '@/lib/conversion'
 import { ConversionResult } from './conversionResult'
 import { useTokenPrices } from '@/hooks/useTokenPrices'
@@ -170,33 +171,37 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
     const hasInvalidChars = /[^\d.]/.test(value)
     
     // Remove any non-numeric characters except decimal point
-    const cleaned = value.replace(/[^\d.]/g, '')
-
+    let cleaned = value.replace(/[^\d.]/g, '')
+    
+    // Normalize the input (remove leading zeros, handle multiple decimal points)
+    const normalized = normalizeNumericInput(cleaned)
+    
     // Validate based on currency mode and asset decimals
     const maxDecimals = isConvertingToToken ? 2 : assetDecimals
     const isValid =
-      isConvertingToToken ? validateUsdInput(cleaned) : validateTokenInput(cleaned, assetDecimals)
+      isConvertingToToken ? validateUsdInput(normalized) : validateTokenInput(normalized, assetDecimals)
 
     // Show error if invalid characters were entered
     if (hasInvalidChars) {
       setInputError(
         `Only numbers and decimal point allowed. Maximum ${maxDecimals} decimal place${maxDecimals > 1 ? 's' : ''}.`
       )
-      // Still update the input with cleaned value
-      setInputValue(cleaned)
+      // Update with normalized value (auto-formatted)
+      setInputValue(normalized)
       setError(null)
     } else if (isValid) {
-      setInputValue(cleaned)
+      // Use normalized value (auto-formatted)
+      setInputValue(normalized)
       setInputError(null)
       setError(null)
-    } else if (cleaned !== '' && cleaned !== '.') {
+    } else if (normalized !== '' && normalized !== '.') {
       // Show error for invalid decimal format
       setInputError(
         `Invalid format. Please enter a number with up to ${maxDecimals} decimal place${maxDecimals > 1 ? 's' : ''}.`
       )
-      setInputValue(cleaned)
+      setInputValue(normalized)
     } else {
-      setInputValue(cleaned)
+      setInputValue(normalized)
       setInputError(null)
     }
   }

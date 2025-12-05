@@ -17,6 +17,7 @@ import type { BridgeState } from '@/lib/bridge-state-machine'
 import { BridgeProgress } from './bridgeProgress'
 import { isAddress, formatUnits, erc20Abi } from 'viem'
 import { useWalletStatus } from '@/hooks/useWalletStatus'
+import { normalizeNumericInput } from '@/lib/conversion'
 
 /**
  * BridgeForm Component
@@ -77,8 +78,7 @@ export function BridgeForm({
   // Watch form values for dynamic updates
   const destinationChain = watch('destinationChain')
   const recipientAddress = watch('recipientAddress')
-  // Amount watching commented out - insufficient balance validation not required
-  // const amount = watch('amount')
+  const amount = watch('amount')
   
   // Get public client for the destination chain
   // usePublicClient returns undefined if chainId is not configured in wagmi
@@ -354,7 +354,16 @@ export function BridgeForm({
           type="text"
           inputMode="decimal"
           placeholder={`Enter amount in ${assetSymbol}`}
-          {...register('amount')}
+          value={amount ?? ''}
+          onChange={(e) => {
+            const value = e.target.value
+            // Remove non-numeric characters except decimal point
+            const cleaned = value.replace(/[^\d.]/g, '')
+            // Normalize the input (remove leading zeros, handle multiple decimal points)
+            const normalized = normalizeNumericInput(cleaned)
+            setValue('amount', normalized, { shouldValidate: true })
+          }}
+          onBlur={register('amount').onBlur}
           disabled={isSubmitting || !selectedAssetChain}
           className="h-12 md:h-9"
           aria-label={`Amount in ${assetSymbol}`}

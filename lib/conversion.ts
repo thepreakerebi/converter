@@ -158,3 +158,57 @@ export function parseInputValue(value: string): number {
   return isNaN(parsed) ? 0 : parsed
 }
 
+/**
+ * Normalize numeric input by removing leading zeros and extra decimal points
+ * Examples:
+ * - '01' → '1'
+ * - '001' → '1'
+ * - '01020' → '1020'
+ * - '01..' → '1.'
+ * - '00.5' → '0.5'
+ * - '.5' → '0.5'
+ * - '0.5' → '0.5' (unchanged)
+ * @param value - Input value to normalize
+ * @returns Normalized string value
+ */
+export function normalizeNumericInput(value: string): string {
+  if (value === '' || value === '.') return value
+  
+  // Remove all non-numeric characters except decimal point
+  let cleaned = value.replace(/[^\d.]/g, '')
+  
+  // Handle multiple decimal points - keep only the first one
+  const firstDotIndex = cleaned.indexOf('.')
+  if (firstDotIndex !== -1) {
+    const beforeDot = cleaned.substring(0, firstDotIndex)
+    const afterDot = cleaned.substring(firstDotIndex + 1).replace(/\./g, '')
+    cleaned = beforeDot + '.' + afterDot
+  }
+  
+  // Handle leading zeros
+  // Split by decimal point to handle integer and decimal parts separately
+  const parts = cleaned.split('.')
+  const integerPart = parts[0] || ''
+  const decimalPart = parts[1] || ''
+  
+  // Remove leading zeros from integer part, but keep at least one zero if it's just '0' or '00'
+  let normalizedInteger = integerPart.replace(/^0+/, '') || '0'
+  
+  // Special case: if user is typing '0.' or '00.', preserve the zero
+  if (integerPart === '' && decimalPart !== '') {
+    normalizedInteger = '0'
+  }
+  
+  // Reconstruct the normalized value
+  if (decimalPart !== '') {
+    return normalizedInteger + '.' + decimalPart
+  }
+  
+  // If no decimal part, return normalized integer (but preserve '0' if that's what user typed)
+  if (normalizedInteger === '0' && integerPart === '') {
+    return '0'
+  }
+  
+  return normalizedInteger
+}
+
