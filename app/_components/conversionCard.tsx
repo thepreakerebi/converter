@@ -171,7 +171,7 @@ export function ConversionCard({ selectedAssetChain, onConversionChange, onInput
     const hasInvalidChars = /[^\d.]/.test(value)
     
     // Remove any non-numeric characters except decimal point
-    let cleaned = value.replace(/[^\d.]/g, '')
+    const cleaned = value.replace(/[^\d.]/g, '')
     
     // Normalize the input (remove leading zeros, handle multiple decimal points)
     const normalized = normalizeNumericInput(cleaned)
